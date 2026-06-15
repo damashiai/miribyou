@@ -418,7 +418,12 @@ app.get("/manga", async (c) => {
             });
             const hoverData = parseHover(hoverHtml);
             
-            if (hoverData.year) item.year = hoverData.year;
+            if (hoverData.year) {
+              item.year = hoverData.year;
+              if (item._raw_published) {
+                item.published = resolveSearchDate(item._raw_published, hoverData.year);
+              }
+            }
             if (hoverData.synopsis && item.synopsis.endsWith("...")) item.synopsis = hoverData.synopsis;
             if (hoverData.genres.length) item.genres = hoverData.genres;
             if (hoverData.themes.length) item.themes = hoverData.themes;
@@ -432,8 +437,11 @@ app.get("/manga", async (c) => {
           } catch (e) {
             // Silently fail for individual hover requests
           }
+          delete item._raw_published;
         })
       );
+    } else {
+      data.data.forEach((item: any) => delete item._raw_published);
     }
 
     return c.json(data);
