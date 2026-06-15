@@ -1,6 +1,6 @@
 import { load } from "cheerio";
 import { MAL_BASE_URL } from "../constants";
-import { parseMalDate, cleanImageUrl } from "../utils";
+import { parseMalDate, cleanImageUrl, resolveSearchDate } from "../utils";
 
 export function parseMangaSearch(html: string): any {
   const $ = load(html);
@@ -24,22 +24,21 @@ export function parseMangaSearch(html: string): any {
     const volumesStr = $row.find("td:nth-child(4)").text().trim();
     const volumes = volumesStr === "-" ? null : parseInt(volumesStr) || null;
     
-    const scoreStr = $row.find("td:nth-child(5)").text().trim();
-    const score = scoreStr === "-" ? null : parseFloat(scoreStr) || null;
-
-    const startDate = $row.find("td:nth-child(6)").text().trim();
-    const endDate = $row.find("td:nth-child(7)").text().trim();
-    const membersStr = $row.find("td:nth-child(8)").text().trim().replace(/,/g, "");
-    const members = membersStr === "-" ? null : parseInt(membersStr) || null;
-    
-    const chaptersStr = $row.find("td:nth-child(9)").text().trim();
+    const chaptersStr = $row.find("td:nth-child(5)").text().trim();
     const chapters = chaptersStr === "-" ? null : parseInt(chaptersStr) || null;
 
-    const published = parseMalDate(
-      startDate && endDate && startDate !== "-" && endDate !== "-" 
+    const scoreStr = $row.find("td:nth-child(6)").text().trim();
+    const score = scoreStr === "-" ? null : parseFloat(scoreStr) || null;
+
+    const startDate = $row.find("td:nth-child(7)").text().trim();
+    const endDate = $row.find("td:nth-child(8)").text().trim();
+    const membersStr = $row.find("td:nth-child(9)").text().trim().replace(/,/g, "");
+    const members = membersStr === "-" ? null : parseInt(membersStr) || null;
+
+    const rawPublished = startDate && endDate && startDate !== "-" && endDate !== "-" 
         ? `${startDate} to ${endDate}` 
-        : (startDate && startDate !== "-" ? startDate : null)
-    );
+        : (startDate && startDate !== "-" ? startDate : null);
+    const published = resolveSearchDate(rawPublished);
 
     const synopsis = $row
       .find("td:nth-child(2) .pt4")
@@ -83,6 +82,7 @@ export function parseMangaSearch(html: string): any {
         chapters,
         airing: false,
         published,
+        _raw_published: rawPublished,
         status: null,
         score,
         scored_by: null,

@@ -1,6 +1,6 @@
 import { load } from "cheerio";
 import { MAL_BASE_URL } from "../constants";
-import { parseMalDate, cleanImageUrl } from "../utils";
+import { parseMalDate, cleanImageUrl, resolveSearchDate } from "../utils";
 
 export function parseAnimeSearch(html: string): any {
   const $ = load(html);
@@ -41,11 +41,10 @@ export function parseAnimeSearch(html: string): any {
       const members = membersStr === "-" ? null : parseInt(membersStr) || null;
       const rating = $tr.find("td:nth-child(9)").text().trim() || null;
 
-      const aired = parseMalDate(
-        startDate && endDate && startDate !== "-" && endDate !== "-" 
+      const rawAired = startDate && endDate && startDate !== "-" && endDate !== "-" 
           ? `${startDate} to ${endDate}` 
-          : (startDate && startDate !== "-" ? startDate : null)
-      );
+          : (startDate && startDate !== "-" ? startDate : null);
+      const aired = resolveSearchDate(rawAired);
 
       return {
         mal_id: parseInt(href.split("/").slice(-2, -1)[0] || "0"),
@@ -91,6 +90,7 @@ export function parseAnimeSearch(html: string): any {
         status: episodes === 1 ? "Finished Airing" : null,
         airing: false,
         aired,
+        _raw_aired: rawAired,
         duration: null,
         rating,
         score,

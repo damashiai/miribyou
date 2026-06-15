@@ -59,6 +59,98 @@ export function parseMalDate(dateStr: string | null) {
   };
 }
 
+export function resolveSearchDate(dateStr: string | null, hoverYear?: number | null) {
+  if (!dateStr || dateStr === "Unknown" || dateStr === "-" || dateStr === "?") {
+    return {
+      from: null,
+      to: null,
+      prop: {
+        from: { day: null, month: null, year: null },
+        to: { day: null, month: null, year: null },
+      },
+      string: "Unknown",
+    };
+  }
+
+  const parts = dateStr.split(" to ");
+  const fromStr = parts[0]?.trim();
+  const toStr = parts[1]?.trim();
+
+  const parseYY = (str: string, refYear: number | null | undefined, isEndDate: boolean) => {
+    if (!str || str === "?" || str === "-") return { day: null, month: null, year: null, iso: null, formatted: "?" };
+    
+    const match = str.match(/(\d{2}|\?\?)-(\d{2}|\?\?)-(\d{2}|\?\?)/);
+    if (!match) {
+      const fallback = parseSingleDate(str);
+      return { ...fallback, formatted: str };
+    }
+
+    const mStr = match[1];
+    const dStr = match[2];
+    const yStr = match[3];
+
+    const m = mStr !== "??" ? parseInt(mStr) : null;
+    const d = dStr !== "??" ? parseInt(dStr) : null;
+    const yShort = yStr !== "??" ? parseInt(yStr) : null;
+
+    let year = null;
+    if (yShort !== null) {
+      if (refYear !== undefined && refYear !== null) {
+        const century = Math.floor(refYear / 100) * 100;
+        year = century + yShort;
+        if (isEndDate) {
+          if (year < refYear) year += 100;
+        } else {
+          const diff1 = Math.abs(year - refYear);
+          const diff2 = Math.abs((year + 100) - refYear);
+          const diff3 = Math.abs((year - 100) - refYear);
+          if (diff2 < diff1 && diff2 < diff3) year += 100;
+          else if (diff3 < diff1 && diff3 < diff2) year -= 100;
+        }
+      } else {
+        const currentYear = new Date().getFullYear();
+        const currentCentury = Math.floor(currentYear / 100) * 100;
+        year = currentCentury + yShort;
+        if (year > currentYear + 10) {
+          year -= 100;
+        }
+      }
+    }
+
+    let iso: string | null = null;
+    if (year) {
+      const isoM = m ? m.toString().padStart(2, "0") : "01";
+      const isoD = d ? d.toString().padStart(2, "0") : "01";
+      iso = `${year}-${isoM}-${isoD}T00:00:00+00:00`;
+    }
+    
+    const fM = m ? m.toString().padStart(2, "0") : "??";
+    const fD = d ? d.toString().padStart(2, "0") : "??";
+    const fY = year ? year.toString() : (yShort !== null ? yShort.toString().padStart(2, "0") : "??");
+    const formatted = `${fM}-${fD}-${fY}`;
+
+    return { day: d, month: m, year, iso, formatted };
+  };
+
+  const fromData = parseYY(fromStr, hoverYear, false);
+  const toData = parseYY(toStr, fromData.year || hoverYear, true);
+
+  let finalString = fromData.formatted;
+  if (toStr) {
+    finalString += ` to ${toData.formatted}`;
+  }
+
+  return {
+    from: fromData.iso,
+    to: toData.iso,
+    prop: {
+      from: { day: fromData.day, month: fromData.month, year: fromData.year },
+      to: { day: toData.day, month: toData.month, year: toData.year },
+    },
+    string: finalString === "?" ? "Unknown" : finalString,
+  };
+}
+
 function parseSingleDate(str: string | undefined) {
   if (!str || str === "?" || str === "Unknown")
     return { iso: null, prop: { day: null, month: null, year: null } };

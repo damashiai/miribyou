@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { trimTrailingSlash } from "hono/trailing-slash";
 
-import { fetchMAL, jikanError } from "./utils";
+import { fetchMAL, jikanError, resolveSearchDate } from "./utils";
 import pkg from "../package.json";
 import { parseAnime } from "./parsers/anime";
 import { parseAnimeCharacters, parseAnimeStaff } from "./parsers/characters";
@@ -108,7 +108,12 @@ app.get("/anime", async (c) => {
             });
             const hoverData = parseHover(hoverHtml);
             
-            if (hoverData.year) item.year = hoverData.year;
+            if (hoverData.year) {
+              item.year = hoverData.year;
+              if (item._raw_aired) {
+                item.aired = resolveSearchDate(item._raw_aired, hoverData.year);
+              }
+            }
             if (hoverData.synopsis && item.synopsis.endsWith("...")) item.synopsis = hoverData.synopsis;
             if (hoverData.genres.length) item.genres = hoverData.genres;
             if (hoverData.themes.length) item.themes = hoverData.themes;
@@ -122,8 +127,11 @@ app.get("/anime", async (c) => {
           } catch (e) {
             // Silently fail for individual hover requests
           }
+          delete item._raw_aired;
         })
       );
+    } else {
+      data.data.forEach((item: any) => delete item._raw_aired);
     }
 
     return c.json(data);
@@ -396,7 +404,7 @@ app.get("/manga", async (c) => {
 
   try {
     const html = await fetchMAL(
-      `/manga.php?q=${encodeURIComponent(q)}&show=${show}&type=0&score=0&status=0&mid=0&sm=0&sd=0&sy=0&em=0&ed=0&ey=0&c[]=a&c[]=b&c[]=c&c[]=d&c[]=e&c[]=f&c[]=i`,
+      `/manga.php?q=${encodeURIComponent(q)}&show=${show}&type=0&score=0&status=0&mid=0&sm=0&sd=0&sy=0&em=0&ed=0&ey=0&c[]=a&c[]=b&c[]=c&c[]=d&c[]=e&c[]=f&c[]=g&c[]=h&c[]=i`,
     );
     const data = parseMangaSearch(html);
     data.pagination.current_page = page;
