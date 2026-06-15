@@ -3,6 +3,13 @@ import { trimTrailingSlash } from "hono/trailing-slash";
 
 import { fetchMAL, jikanError, resolveSearchDate } from "./utils";
 import pkg from "../package.json";
+import {
+  fetchFromMalApi,
+  parseMalApiAnime,
+  parseMalApiManga,
+  ANIME_FIELDS,
+  MANGA_FIELDS,
+} from "./mal_api";
 import { parseAnime } from "./parsers/anime";
 import { parseAnimeCharacters, parseAnimeStaff } from "./parsers/characters";
 import { parseAnimeSearch } from "./parsers/anime_search";
@@ -33,7 +40,9 @@ import { parseUserClubs } from "./parsers/user_clubs";
 import { parseHistory } from "./parsers/history";
 import { parseHover } from "./parsers/hover";
 
-const app = new Hono().basePath("/v4");
+const app = new Hono<{ Bindings: { MAL_CLIENT_ID?: string } }>().basePath(
+  "/v4",
+);
 
 app.use(trimTrailingSlash());
 
@@ -89,7 +98,40 @@ app.get("/anime", async (c) => {
       400,
     );
   }
-  
+
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const offset = (page - 1) * 50;
+      const apiResponse = await fetchFromMalApi("/anime", malClientId, {
+        q,
+        limit: "50",
+        offset: offset.toString(),
+        fields: ANIME_FIELDS,
+        nsfw: "true",
+      });
+      const results = (apiResponse.data || []).map((item: any) =>
+        parseMalApiAnime(item.node),
+      );
+      const hasNext = apiResponse.paging?.next ? true : false;
+      return c.json({
+        pagination: {
+          last_visible_page: hasNext ? page + 1 : page,
+          has_next_page: hasNext,
+          current_page: page,
+          items: {
+            count: results.length,
+            total: results.length + (hasNext ? 50 : 0),
+            per_page: 50,
+          },
+        },
+        data: results,
+      });
+    } catch (error: any) {
+      return c.json(jikanError(500, error.message), 500);
+    }
+  }
+
   const show = (page - 1) * 50;
 
   try {
@@ -104,31 +146,35 @@ app.get("/anime", async (c) => {
         data.data.map(async (item: any) => {
           try {
             const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest"
+              "X-Requested-With": "XMLHttpRequest",
             });
             const hoverData = parseHover(hoverHtml);
-            
+
             if (hoverData.year) {
               item.year = hoverData.year;
               if (item._raw_aired) {
                 item.aired = resolveSearchDate(item._raw_aired, hoverData.year);
               }
             }
-            if (hoverData.synopsis && item.synopsis.endsWith("...")) item.synopsis = hoverData.synopsis;
+            if (hoverData.synopsis && item.synopsis.endsWith("..."))
+              item.synopsis = hoverData.synopsis;
             if (hoverData.genres.length) item.genres = hoverData.genres;
             if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length) item.demographics = hoverData.demographics;
+            if (hoverData.demographics.length)
+              item.demographics = hoverData.demographics;
             if (hoverData.status) item.status = hoverData.status;
             if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null) item.scored_by = hoverData.scored_by;
+            if (hoverData.scored_by !== null)
+              item.scored_by = hoverData.scored_by;
             if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null) item.popularity = hoverData.popularity;
+            if (hoverData.popularity !== null)
+              item.popularity = hoverData.popularity;
             if (hoverData.members !== null) item.members = hoverData.members;
           } catch (e) {
             // Silently fail for individual hover requests
           }
           delete item._raw_aired;
-        })
+        }),
       );
     } else {
       data.data.forEach((item: any) => delete item._raw_aired);
@@ -142,6 +188,26 @@ app.get("/anime", async (c) => {
 
 app.get("/anime/:id", async (c) => {
   const id = c.req.param("id");
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const apiResponse = await fetchFromMalApi(`/anime/${id}`, malClientId, {
+        fields: ANIME_FIELDS,
+        nsfw: "true",
+      });
+      const data = parseMalApiAnime(apiResponse);
+      // Remove heavy fields for non-full endpoint
+      delete data.relations;
+      delete data.external;
+      delete data.streaming;
+      delete data.theme;
+      return c.json({ data });
+    } catch (error: any) {
+      const status = error.message.includes("404") ? 404 : 500;
+      return c.json(jikanError(status, error.message), status);
+    }
+  }
+
   try {
     const html = await fetchMAL(`/anime/${id}`);
     const data = parseAnime(html);
@@ -159,6 +225,21 @@ app.get("/anime/:id", async (c) => {
 
 app.get("/anime/:id/full", async (c) => {
   const id = c.req.param("id");
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const apiResponse = await fetchFromMalApi(`/anime/${id}`, malClientId, {
+        fields: ANIME_FIELDS,
+        nsfw: "true",
+      });
+      const data = parseMalApiAnime(apiResponse);
+      return c.json({ data });
+    } catch (error: any) {
+      const status = error.message.includes("404") ? 404 : 500;
+      return c.json(jikanError(status, error.message), status);
+    }
+  }
+
   try {
     const html = await fetchMAL(`/anime/${id}`);
     const data = parseAnime(html);
@@ -399,7 +480,40 @@ app.get("/manga", async (c) => {
       400,
     );
   }
-  
+
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const offset = (page - 1) * 50;
+      const apiResponse = await fetchFromMalApi("/manga", malClientId, {
+        q,
+        limit: "50",
+        offset: offset.toString(),
+        fields: MANGA_FIELDS,
+        nsfw: "true",
+      });
+      const results = (apiResponse.data || []).map((item: any) =>
+        parseMalApiManga(item.node),
+      );
+      const hasNext = apiResponse.paging?.next ? true : false;
+      return c.json({
+        pagination: {
+          last_visible_page: hasNext ? page + 1 : page,
+          has_next_page: hasNext,
+          current_page: page,
+          items: {
+            count: results.length,
+            total: results.length + (hasNext ? 50 : 0),
+            per_page: 50,
+          },
+        },
+        data: results,
+      });
+    } catch (error: any) {
+      return c.json(jikanError(500, error.message), 500);
+    }
+  }
+
   const show = (page - 1) * 50;
 
   try {
@@ -414,31 +528,38 @@ app.get("/manga", async (c) => {
         data.data.map(async (item: any) => {
           try {
             const hoverHtml = await fetchMAL(`/manga/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest"
+              "X-Requested-With": "XMLHttpRequest",
             });
             const hoverData = parseHover(hoverHtml);
-            
+
             if (hoverData.year) {
               item.year = hoverData.year;
               if (item._raw_published) {
-                item.published = resolveSearchDate(item._raw_published, hoverData.year);
+                item.published = resolveSearchDate(
+                  item._raw_published,
+                  hoverData.year,
+                );
               }
             }
-            if (hoverData.synopsis && item.synopsis.endsWith("...")) item.synopsis = hoverData.synopsis;
+            if (hoverData.synopsis && item.synopsis.endsWith("..."))
+              item.synopsis = hoverData.synopsis;
             if (hoverData.genres.length) item.genres = hoverData.genres;
             if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length) item.demographics = hoverData.demographics;
+            if (hoverData.demographics.length)
+              item.demographics = hoverData.demographics;
             if (hoverData.status) item.status = hoverData.status;
             if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null) item.scored_by = hoverData.scored_by;
+            if (hoverData.scored_by !== null)
+              item.scored_by = hoverData.scored_by;
             if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null) item.popularity = hoverData.popularity;
+            if (hoverData.popularity !== null)
+              item.popularity = hoverData.popularity;
             if (hoverData.members !== null) item.members = hoverData.members;
           } catch (e) {
             // Silently fail for individual hover requests
           }
           delete item._raw_published;
-        })
+        }),
       );
     } else {
       data.data.forEach((item: any) => delete item._raw_published);
@@ -452,6 +573,24 @@ app.get("/manga", async (c) => {
 
 app.get("/manga/:id", async (c) => {
   const id = c.req.param("id");
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const apiResponse = await fetchFromMalApi(`/manga/${id}`, malClientId, {
+        fields: MANGA_FIELDS,
+        nsfw: "true",
+      });
+      const data = parseMalApiManga(apiResponse);
+      // Remove heavy fields for non-full endpoint
+      delete data.relations;
+      delete data.external;
+      return c.json({ data });
+    } catch (error: any) {
+      const status = error.message.includes("404") ? 404 : 500;
+      return c.json(jikanError(status, error.message), status);
+    }
+  }
+
   try {
     const html = await fetchMAL(`/manga/${id}`);
     const data = parseManga(html);
@@ -467,6 +606,21 @@ app.get("/manga/:id", async (c) => {
 
 app.get("/manga/:id/full", async (c) => {
   const id = c.req.param("id");
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const apiResponse = await fetchFromMalApi(`/manga/${id}`, malClientId, {
+        fields: MANGA_FIELDS,
+        nsfw: "true",
+      });
+      const data = parseMalApiManga(apiResponse);
+      return c.json({ data });
+    } catch (error: any) {
+      const status = error.message.includes("404") ? 404 : 500;
+      return c.json(jikanError(status, error.message), status);
+    }
+  }
+
   try {
     const html = await fetchMAL(`/manga/${id}`);
     const data = parseManga(html);

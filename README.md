@@ -30,6 +30,13 @@ Miribyou is a lightweight MAL (MyAnimeList) scraper built for performance and ac
 3. Login to Wrangler: `npx wrangler login`.
 4. Deploy: `npm run deploy`.
 
+### Official MAL API Integration (Optional)
+
+Miribyou can optionally utilize the official MyAnimeList v2 API and map it to Jikan-like V4 JSON structures. This bypasses HTML scraping for search and detail endpoints:
+
+- **Environment Secret/Variable:** Set the `MAL_CLIENT_ID` variable or secret in Wrangler (or your hosting platform).
+- **Request Header:** Alternatively, clients can specify their own Client ID dynamically by sending the `X-MAL-CLIENT-ID` header with their request.
+
 ### Vercel
 
 You can deploy miribyou to Vercel using the button above or by connecting your GitHub repository to the Vercel dashboard.
