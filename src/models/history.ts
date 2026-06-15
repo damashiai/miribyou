@@ -1,6 +1,6 @@
 import { MalUrl } from "../models/anime";
 
-export interface HistoryItem {
+export interface History {
   entry: MalUrl;
   increment: number;
   date: string;

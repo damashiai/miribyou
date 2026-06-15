@@ -26,7 +26,7 @@ export function parseHistory(html: string): History[] {
           mal_id,
           url,
           type,
-          title,
+          name: title,
         },
         increment: 1, // History usually doesn't show increment directly on this page
         date: date || dateText,

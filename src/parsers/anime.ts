@@ -159,7 +159,7 @@ export function parseAnime(html: string): Anime {
         const href = a.attr("href") || "";
         const parts = href.split("/").filter(Boolean);
         return {
-          mal_id: parseInt(parts[parts.length - 2]) || null,
+          mal_id: parseInt(parts[parts.length - 2]) || 0,
           type: "anime",
           name,
           url: ensureMalUrl(href),
@@ -397,9 +397,10 @@ export function parseAnime(html: string): Anime {
     status,
     airing: status === "Currently Airing",
     aired,
-    duration: getInfo("Duration:")
-      ?.replace(/min\./g, "min")
-      .replace(/[\. ]+$/, ""),
+    duration:
+      (getInfo("Duration:") || null)
+        ?.replace(/min\./g, "min")
+        .replace(/[\. ]+$/, "") || null,
     rating: getInfo("Rating:"),
     score,
     scored_by,

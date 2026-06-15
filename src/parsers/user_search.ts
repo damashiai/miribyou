@@ -1,7 +1,7 @@
 import { load } from "cheerio";
 import { UserMeta } from "../models/user";
 import { MAL_BASE_URL } from "../constants";
-import { toIsoDate } from "../utils";
+import { toIsoDate, cleanImageUrl } from "../utils";
 
 export function parseUserSearch(html: string): any {
   const $ = load(html);

@@ -73,7 +73,7 @@ export function parseUser(html: string): User {
   const anime_stats = {
     days_watched: parseFloat(parseStat(".stats.anime", "Days:") || "0"),
     mean_score:
-      parseFloat(parseStat(".stats.anime", "Mean Score:") || "0") || null,
+      parseFloat(parseStat(".stats.anime", "Mean Score:") || "0") || 0,
     watching: parseInt(parseStat(".stats.anime", "Watching") || "0"),
     completed: parseInt(parseStat(".stats.anime", "Completed") || "0"),
     on_hold: parseInt(parseStat(".stats.anime", "On-Hold") || "0"),
@@ -87,7 +87,7 @@ export function parseUser(html: string): User {
   const manga_stats = {
     days_read: parseFloat(parseStat(".stats.manga", "Days:") || "0"),
     mean_score:
-      parseFloat(parseStat(".stats.manga", "Mean Score:") || "0") || null,
+      parseFloat(parseStat(".stats.manga", "Mean Score:") || "0") || 0,
     reading: parseInt(parseStat(".stats.manga", "Reading") || "0"),
     completed: parseInt(parseStat(".stats.manga", "Completed") || "0"),
     on_hold: parseInt(parseStat(".stats.manga", "On-Hold") || "0"),

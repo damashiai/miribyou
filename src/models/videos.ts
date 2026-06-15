@@ -21,7 +21,10 @@ export interface VideoEpisode {
   url: string;
   title: string;
   episode: string;
-  images: { jpg: { image_url: string | null } };
+  images: {
+    jpg: { image_url: string | null };
+    webp?: { image_url: string | null };
+  };
 }
 
 export interface MusicVideo {
