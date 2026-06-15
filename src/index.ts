@@ -91,32 +91,210 @@ const getMetadata = async (c: any) => {
 
 app.get("/", getMetadata);
 
+function parseSearchDate(dateStr?: string) {
+  if (!dateStr) return { y: 0, m: 0, d: 0 };
+  const parts = dateStr.split("-");
+  return {
+    y: parseInt(parts[0]) || 0,
+    m: parseInt(parts[1]) || 0,
+    d: parseInt(parts[2]) || 0,
+  };
+}
+
+function calculateAge(birthdayIso?: string): number | undefined {
+  if (!birthdayIso) return undefined;
+  const birthDate = new Date(birthdayIso);
+  if (isNaN(birthDate.getTime())) return undefined;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
 app.get("/anime", async (c) => {
-  const q = c.req.query("q");
+  const q = c.req.query("q") || "";
   const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "25");
   const hover = c.req.query("hover") === "1" || c.req.query("hover") === "true";
 
-  if (!q) {
+  // Jikan filters
+  const type = c.req.query("type");
+  const score = c.req.query("score")
+    ? parseFloat(c.req.query("score")!)
+    : undefined;
+  const min_score = c.req.query("min_score")
+    ? parseFloat(c.req.query("min_score")!)
+    : undefined;
+  const max_score = c.req.query("max_score")
+    ? parseFloat(c.req.query("max_score")!)
+    : undefined;
+  const status = c.req.query("status");
+  const rating = c.req.query("rating");
+  const sfw = c.req.query("sfw") === "1" || c.req.query("sfw") === "true";
+  const genres = c.req.query("genres");
+  const genres_exclude = c.req.query("genres_exclude");
+  const order_by = c.req.query("order_by");
+  const sort = c.req.query("sort") || "asc";
+  const letter = c.req.query("letter");
+  const producers = c.req.query("producers");
+  const start_date = c.req.query("start_date");
+  const end_date = c.req.query("end_date");
+
+  if (!q && !letter && !genres && !producers) {
     return c.json(
       jikanError(400, 'Query parameter "q" is required for search'),
       400,
     );
   }
 
+  // Type Mapping for MAL
+  const typeMap: Record<string, number> = {
+    tv: 1,
+    ova: 2,
+    movie: 3,
+    special: 4,
+    ona: 5,
+    music: 6,
+  };
+  const malType = type ? typeMap[type.toLowerCase()] || 0 : 0;
+
+  // Status Mapping for MAL
+  const statusMap: Record<string, number> = {
+    airing: 1,
+    complete: 2,
+    upcoming: 3,
+  };
+  const malStatus = status ? statusMap[status.toLowerCase()] || 0 : 0;
+
+  // Rating Mapping for MAL
+  const ratingMap: Record<string, number> = {
+    g: 1,
+    pg: 2,
+    pg13: 3,
+    r17: 4,
+    r: 5,
+    rx: 6,
+  };
+  const malRating = rating ? ratingMap[rating.toLowerCase()] || 0 : 0;
+
+  // Sorting Mapping for MAL (o=col, w=way)
+  const orderByMap: Record<string, number> = {
+    title: 1,
+    type: 2,
+    episodes: 3,
+    score: 4,
+    start_date: 5,
+    end_date: 6,
+    members: 7,
+    popularity: 7,
+  };
+  const malOrderBy = order_by ? orderByMap[order_by.toLowerCase()] || 0 : 0;
+  const malSort = sort.toLowerCase() === "desc" ? 2 : 1;
+
   const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
   if (malClientId) {
     try {
-      const offset = (page - 1) * 50;
+      const offset = (page - 1) * limit;
       const apiResponse = await fetchFromMalApi("/anime", malClientId, {
-        q,
-        limit: "50",
+        q: q || (letter ? letter : ""),
+        limit: "100",
         offset: offset.toString(),
         fields: ANIME_FIELDS,
         nsfw: "true",
       });
-      const results = (apiResponse.data || []).map((item: any) =>
+      let results = (apiResponse.data || []).map((item: any) =>
         parseMalApiAnime(item.node),
       );
+
+      // In-Memory filtering
+      results = results.filter((item: any) => {
+        if (type && item.type?.toLowerCase() !== type.toLowerCase())
+          return false;
+        if (item.score !== null && item.score !== undefined) {
+          if (score !== undefined && item.score !== score) return false;
+          if (min_score !== undefined && item.score < min_score) return false;
+          if (max_score !== undefined && item.score > max_score) return false;
+        }
+        if (status && item.status) {
+          const sLower = item.status.toLowerCase();
+          if (status === "airing" && !sLower.includes("airing")) return false;
+          if (status === "complete" && !sLower.includes("finished"))
+            return false;
+          if (status === "upcoming" && !sLower.includes("not yet"))
+            return false;
+        }
+        if (rating && item.rating) {
+          const rLower = item.rating.toLowerCase();
+          if (rating === "g" && !rLower.includes("g -")) return false;
+          if (rating === "pg" && !rLower.includes("pg -")) return false;
+          if (rating === "pg13" && !rLower.includes("pg-13")) return false;
+          if (rating === "r17" && !rLower.includes("r - 17")) return false;
+          if (rating === "r" && !rLower.includes("r+")) return false;
+          if (rating === "rx" && !rLower.includes("rx")) return false;
+        }
+        if (sfw) {
+          if (item.rating?.toLowerCase().includes("rx")) return false;
+          if (
+            item.genres?.some(
+              (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+            )
+          )
+            return false;
+        }
+        if (genres) {
+          const gIds = genres
+            .split(",")
+            .map((id) => parseInt(id.trim()))
+            .filter((id) => !isNaN(id));
+          if (gIds.length > 0 && item.genres) {
+            const itemGIds = item.genres.map((g: any) => g.mal_id);
+            if (!gIds.every((id) => itemGIds.includes(id))) return false;
+          }
+        }
+        if (genres_exclude) {
+          const gIds = genres_exclude
+            .split(",")
+            .map((id) => parseInt(id.trim()))
+            .filter((id) => !isNaN(id));
+          if (gIds.length > 0 && item.genres) {
+            const itemGIds = item.genres.map((g: any) => g.mal_id);
+            if (gIds.some((id) => itemGIds.includes(id))) return false;
+          }
+        }
+        if (
+          letter &&
+          item.title &&
+          !item.title.toLowerCase().startsWith(letter.toLowerCase())
+        )
+          return false;
+        if (start_date && item.aired?.from) {
+          if (
+            new Date(item.aired.from).getTime() < new Date(start_date).getTime()
+          )
+            return false;
+        }
+        if (end_date && item.aired?.to) {
+          if (new Date(item.aired.to).getTime() > new Date(end_date).getTime())
+            return false;
+        }
+        return true;
+      });
+
+      if (order_by) {
+        results.sort((a: any, b: any) => {
+          const valA = a[order_by.toLowerCase()] ?? 0;
+          const valB = b[order_by.toLowerCase()] ?? 0;
+          if (sort.toLowerCase() === "desc") {
+            return valA < valB ? 1 : valA > valB ? -1 : 0;
+          } else {
+            return valA > valB ? 1 : valA < valB ? -1 : 0;
+          }
+        });
+      }
+
       const hasNext = apiResponse.paging?.next ? true : false;
       return c.json({
         pagination: {
@@ -126,24 +304,76 @@ app.get("/anime", async (c) => {
           items: {
             count: results.length,
             total: results.length + (hasNext ? 50 : 0),
-            per_page: 50,
+            per_page: limit,
           },
         },
-        data: results,
+        data: results.slice(0, limit),
       });
     } catch (error: any) {
       return c.json(jikanError(500, error.message), 500);
     }
   }
 
-  const show = (page - 1) * 50;
+  const show = Math.floor(((page - 1) * limit) / 50) * 50;
+
+  const malParams = new URLSearchParams();
+  if (q) malParams.set("q", q);
+  malParams.set("show", show.toString());
+  if (malType) malParams.set("type", malType.toString());
+
+  const minScoreMAL =
+    min_score !== undefined ? min_score : score !== undefined ? score : 0;
+  malParams.set("score", Math.floor(minScoreMAL).toString());
+
+  if (malStatus) malParams.set("status", malStatus.toString());
+  if (malRating) malParams.set("r", malRating.toString());
+
+  const start = parseSearchDate(start_date);
+  malParams.set("sm", start.m.toString());
+  malParams.set("sd", start.d.toString());
+  malParams.set("sy", start.y.toString());
+
+  const end = parseSearchDate(end_date);
+  malParams.set("em", end.m.toString());
+  malParams.set("ed", end.d.toString());
+  malParams.set("ey", end.y.toString());
+
+  let genreQuery = "";
+  if (genres) {
+    genres.split(",").forEach((id) => {
+      genreQuery += `&genre[]=${encodeURIComponent(id.trim())}`;
+    });
+  } else if (genres_exclude) {
+    genres_exclude.split(",").forEach((id) => {
+      genreQuery += `&genre[]=${encodeURIComponent(id.trim())}`;
+    });
+    malParams.set("gx", "1");
+  }
+
+  if (letter) {
+    malParams.set("letter", letter.toUpperCase());
+  }
+
+  if (producers) {
+    malParams.set("p", producers.split(",")[0].trim());
+  }
+
+  if (malOrderBy) {
+    malParams.set("o", malOrderBy.toString());
+    malParams.set("w", malSort.toString());
+  }
+
+  const columns = ["a", "b", "c", "d", "e", "f", "g"];
+  let colQuery = "";
+  columns.forEach((c) => {
+    colQuery += `&c[]=${c}`;
+  });
 
   try {
     const html = await fetchMAL(
-      `/anime.php?q=${encodeURIComponent(q)}&show=${show}&type=0&score=0&status=0&p=0&r=0&sm=0&sd=0&sy=0&em=0&ed=0&ey=0&c[]=a&c[]=b&c[]=c&c[]=d&c[]=e&c[]=f&c[]=g`,
+      `/anime.php?${malParams.toString()}${genreQuery}${colQuery}`,
     );
     const data = parseAnimeSearch(html);
-    data.pagination.current_page = page;
 
     if (hover && data.data.length > 0) {
       await Promise.all(
@@ -177,14 +407,78 @@ app.get("/anime", async (c) => {
           } catch (e) {
             // Silently fail for individual hover requests
           }
-          delete item._raw_aired;
         }),
       );
-    } else {
-      data.data.forEach((item: any) => delete item._raw_aired);
     }
 
-    return c.json(data);
+    let results = data.data;
+    results = results.filter((item: any) => {
+      if (item.score !== null && item.score !== undefined) {
+        if (score !== undefined && item.score !== score) return false;
+        if (min_score !== undefined && item.score < min_score) return false;
+        if (max_score !== undefined && item.score > max_score) return false;
+      }
+
+      if (sfw) {
+        if (item.rating && item.rating.toLowerCase().includes("rx"))
+          return false;
+        if (
+          item.genres &&
+          item.genres.some(
+            (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+          )
+        )
+          return false;
+      }
+
+      if (genres && genres_exclude && item.genres && item.genres.length > 0) {
+        const excludeIds = genres_exclude
+          .split(",")
+          .map((id) => parseInt(id.trim()))
+          .filter((id) => !isNaN(id));
+        const itemGIds = item.genres.map((g: any) => g.mal_id);
+        if (excludeIds.some((id) => itemGIds.includes(id))) return false;
+      }
+
+      return true;
+    });
+
+    if (order_by) {
+      results.sort((a: any, b: any) => {
+        const valA = a[order_by.toLowerCase()] ?? 0;
+        const valB = b[order_by.toLowerCase()] ?? 0;
+        if (sort.toLowerCase() === "desc") {
+          return valA < valB ? 1 : valA > valB ? -1 : 0;
+        } else {
+          return valA > valB ? 1 : valA < valB ? -1 : 0;
+        }
+      });
+    }
+
+    const startIndex = ((page - 1) * limit) % 50;
+    const endIndex = startIndex + limit;
+    const slicedData = results.slice(startIndex, endIndex);
+
+    slicedData.forEach((item: any) => delete item._raw_aired);
+
+    const hasNext = data.pagination.has_next_page || endIndex < results.length;
+    const lastVisiblePage = Math.ceil(
+      (data.pagination.last_visible_page * 50) / limit,
+    );
+
+    return c.json({
+      pagination: {
+        last_visible_page: lastVisiblePage,
+        has_next_page: hasNext,
+        current_page: page,
+        items: {
+          count: slicedData.length,
+          total: data.pagination.last_visible_page * 50,
+          per_page: limit,
+        },
+      },
+      data: slicedData,
+    });
   } catch (error: any) {
     return c.json(jikanError(500, error.message), 500);
   }
@@ -486,33 +780,180 @@ app.get("/anime/:id/streaming", async (c) => {
     return c.json(jikanError(status, error.message), status);
   }
 });
-
 app.get("/manga", async (c) => {
-  const q = c.req.query("q");
+  const q = c.req.query("q") || "";
   const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "25");
   const hover = c.req.query("hover") === "1" || c.req.query("hover") === "true";
 
-  if (!q) {
+  // Jikan filters
+  const type = c.req.query("type");
+  const score = c.req.query("score")
+    ? parseFloat(c.req.query("score")!)
+    : undefined;
+  const min_score = c.req.query("min_score")
+    ? parseFloat(c.req.query("min_score")!)
+    : undefined;
+  const max_score = c.req.query("max_score")
+    ? parseFloat(c.req.query("max_score")!)
+    : undefined;
+  const status = c.req.query("status");
+  const sfw = c.req.query("sfw") === "1" || c.req.query("sfw") === "true";
+  const genres = c.req.query("genres");
+  const genres_exclude = c.req.query("genres_exclude");
+  const order_by = c.req.query("order_by");
+  const sort = c.req.query("sort") || "asc";
+  const letter = c.req.query("letter");
+  const magazines = c.req.query("magazines");
+  const start_date = c.req.query("start_date");
+  const end_date = c.req.query("end_date");
+
+  if (!q && !letter && !genres && !magazines) {
     return c.json(
       jikanError(400, 'Query parameter "q" is required for search'),
       400,
     );
   }
 
+  // Type Mapping for MAL manga type
+  const typeMap: Record<string, number> = {
+    manga: 1,
+    novel: 2,
+    lightnovel: 2,
+    oneshot: 3,
+    doujin: 4,
+    manhwa: 5,
+    manhua: 6,
+  };
+  const malType = type ? typeMap[type.toLowerCase()] || 0 : 0;
+
+  // Status Mapping for MAL manga status
+  const statusMap: Record<string, number> = {
+    publishing: 1,
+    complete: 2,
+    hiatus: 3,
+    discontinued: 4,
+    upcoming: 5,
+  };
+  const malStatus = status ? statusMap[status.toLowerCase()] || 0 : 0;
+
+  // Sorting Mapping for MAL manga (o=col, w=way)
+  const orderByMap: Record<string, number> = {
+    title: 1,
+    type: 2,
+    chapters: 3,
+    volumes: 4,
+    score: 5,
+    start_date: 6,
+    end_date: 7,
+    members: 8,
+    popularity: 8,
+  };
+  const malOrderBy = order_by ? orderByMap[order_by.toLowerCase()] || 0 : 0;
+  const malSort = sort.toLowerCase() === "desc" ? 2 : 1;
+
   const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
   if (malClientId) {
     try {
-      const offset = (page - 1) * 50;
+      const offset = (page - 1) * limit;
       const apiResponse = await fetchFromMalApi("/manga", malClientId, {
-        q,
-        limit: "50",
+        q: q || (letter ? letter : ""),
+        limit: "100",
         offset: offset.toString(),
         fields: MANGA_FIELDS,
         nsfw: "true",
       });
-      const results = (apiResponse.data || []).map((item: any) =>
+      let results = (apiResponse.data || []).map((item: any) =>
         parseMalApiManga(item.node),
       );
+
+      // In-Memory filtering
+      results = results.filter((item: any) => {
+        if (type && item.type?.toLowerCase() !== type.toLowerCase())
+          return false;
+        if (item.score !== null && item.score !== undefined) {
+          if (score !== undefined && item.score !== score) return false;
+          if (min_score !== undefined && item.score < min_score) return false;
+          if (max_score !== undefined && item.score > max_score) return false;
+        }
+        if (status && item.status) {
+          const sLower = item.status.toLowerCase();
+          if (status === "publishing" && !sLower.includes("publishing"))
+            return false;
+          if (status === "complete" && !sLower.includes("finished"))
+            return false;
+          if (status === "hiatus" && !sLower.includes("hiatus")) return false;
+          if (status === "discontinued" && !sLower.includes("discontinued"))
+            return false;
+          if (status === "upcoming" && !sLower.includes("not yet"))
+            return false;
+        }
+        if (sfw) {
+          if (
+            item.genres?.some(
+              (g: any) =>
+                g.mal_id === 12 ||
+                g.name?.toLowerCase() === "hentai" ||
+                g.mal_id === 50 ||
+                g.name?.toLowerCase() === "erotica",
+            )
+          )
+            return false;
+        }
+        if (genres) {
+          const gIds = genres
+            .split(",")
+            .map((id) => parseInt(id.trim()))
+            .filter((id) => !isNaN(id));
+          if (gIds.length > 0 && item.genres) {
+            const itemGIds = item.genres.map((g: any) => g.mal_id);
+            if (!gIds.every((id) => itemGIds.includes(id))) return false;
+          }
+        }
+        if (genres_exclude) {
+          const gIds = genres_exclude
+            .split(",")
+            .map((id) => parseInt(id.trim()))
+            .filter((id) => !isNaN(id));
+          if (gIds.length > 0 && item.genres) {
+            const itemGIds = item.genres.map((g: any) => g.mal_id);
+            if (gIds.some((id) => itemGIds.includes(id))) return false;
+          }
+        }
+        if (
+          letter &&
+          item.title &&
+          !item.title.toLowerCase().startsWith(letter.toLowerCase())
+        )
+          return false;
+        if (start_date && item.published?.from) {
+          if (
+            new Date(item.published.from).getTime() <
+            new Date(start_date).getTime()
+          )
+            return false;
+        }
+        if (end_date && item.published?.to) {
+          if (
+            new Date(item.published.to).getTime() > new Date(end_date).getTime()
+          )
+            return false;
+        }
+        return true;
+      });
+
+      if (order_by) {
+        results.sort((a: any, b: any) => {
+          const valA = a[order_by.toLowerCase()] ?? 0;
+          const valB = b[order_by.toLowerCase()] ?? 0;
+          if (sort.toLowerCase() === "desc") {
+            return valA < valB ? 1 : valA > valB ? -1 : 0;
+          } else {
+            return valA > valB ? 1 : valA < valB ? -1 : 0;
+          }
+        });
+      }
+
       const hasNext = apiResponse.paging?.next ? true : false;
       return c.json({
         pagination: {
@@ -522,24 +963,75 @@ app.get("/manga", async (c) => {
           items: {
             count: results.length,
             total: results.length + (hasNext ? 50 : 0),
-            per_page: 50,
+            per_page: limit,
           },
         },
-        data: results,
+        data: results.slice(0, limit),
       });
     } catch (error: any) {
       return c.json(jikanError(500, error.message), 500);
     }
   }
 
-  const show = (page - 1) * 50;
+  const show = Math.floor(((page - 1) * limit) / 50) * 50;
+
+  const malParams = new URLSearchParams();
+  if (q) malParams.set("q", q);
+  malParams.set("show", show.toString());
+  if (malType) malParams.set("type", malType.toString());
+
+  const minScoreMAL =
+    min_score !== undefined ? min_score : score !== undefined ? score : 0;
+  malParams.set("score", Math.floor(minScoreMAL).toString());
+
+  if (malStatus) malParams.set("status", malStatus.toString());
+
+  const start = parseSearchDate(start_date);
+  malParams.set("sm", start.m.toString());
+  malParams.set("sd", start.d.toString());
+  malParams.set("sy", start.y.toString());
+
+  const end = parseSearchDate(end_date);
+  malParams.set("em", end.m.toString());
+  malParams.set("ed", end.d.toString());
+  malParams.set("ey", end.y.toString());
+
+  let genreQuery = "";
+  if (genres) {
+    genres.split(",").forEach((id) => {
+      genreQuery += `&genre[]=${encodeURIComponent(id.trim())}`;
+    });
+  } else if (genres_exclude) {
+    genres_exclude.split(",").forEach((id) => {
+      genreQuery += `&genre[]=${encodeURIComponent(id.trim())}`;
+    });
+    malParams.set("gx", "1");
+  }
+
+  if (letter) {
+    malParams.set("letter", letter.toUpperCase());
+  }
+
+  if (magazines) {
+    malParams.set("mid", magazines.split(",")[0].trim());
+  }
+
+  if (malOrderBy) {
+    malParams.set("o", malOrderBy.toString());
+    malParams.set("w", malSort.toString());
+  }
+
+  const columns = ["a", "b", "c", "d", "e", "f", "g", "h", "i"];
+  let colQuery = "";
+  columns.forEach((c) => {
+    colQuery += `&c[]=${c}`;
+  });
 
   try {
     const html = await fetchMAL(
-      `/manga.php?q=${encodeURIComponent(q)}&show=${show}&type=0&score=0&status=0&mid=0&sm=0&sd=0&sy=0&em=0&ed=0&ey=0&c[]=a&c[]=b&c[]=c&c[]=d&c[]=e&c[]=f&c[]=g&c[]=h&c[]=i`,
+      `/manga.php?${malParams.toString()}${genreQuery}${colQuery}`,
     );
     const data = parseMangaSearch(html);
-    data.pagination.current_page = page;
 
     if (hover && data.data.length > 0) {
       await Promise.all(
@@ -576,14 +1068,80 @@ app.get("/manga", async (c) => {
           } catch (e) {
             // Silently fail for individual hover requests
           }
-          delete item._raw_published;
         }),
       );
-    } else {
-      data.data.forEach((item: any) => delete item._raw_published);
     }
 
-    return c.json(data);
+    let results = data.data;
+    results = results.filter((item: any) => {
+      if (item.score !== null && item.score !== undefined) {
+        if (score !== undefined && item.score !== score) return false;
+        if (min_score !== undefined && item.score < min_score) return false;
+        if (max_score !== undefined && item.score > max_score) return false;
+      }
+
+      if (sfw) {
+        if (
+          item.genres &&
+          item.genres.some(
+            (g: any) =>
+              g.mal_id === 12 ||
+              g.name?.toLowerCase() === "hentai" ||
+              g.mal_id === 50 ||
+              g.name?.toLowerCase() === "erotica",
+          )
+        )
+          return false;
+      }
+
+      if (genres && genres_exclude && item.genres && item.genres.length > 0) {
+        const excludeIds = genres_exclude
+          .split(",")
+          .map((id) => parseInt(id.trim()))
+          .filter((id) => !isNaN(id));
+        const itemGIds = item.genres.map((g: any) => g.mal_id);
+        if (excludeIds.some((id) => itemGIds.includes(id))) return false;
+      }
+
+      return true;
+    });
+
+    if (order_by) {
+      results.sort((a: any, b: any) => {
+        const valA = a[order_by.toLowerCase()] ?? 0;
+        const valB = b[order_by.toLowerCase()] ?? 0;
+        if (sort.toLowerCase() === "desc") {
+          return valA < valB ? 1 : valA > valB ? -1 : 0;
+        } else {
+          return valA > valB ? 1 : valA < valB ? -1 : 0;
+        }
+      });
+    }
+
+    const startIndex = ((page - 1) * limit) % 50;
+    const endIndex = startIndex + limit;
+    const slicedData = results.slice(startIndex, endIndex);
+
+    slicedData.forEach((item: any) => delete item._raw_published);
+
+    const hasNext = data.pagination.has_next_page || endIndex < results.length;
+    const lastVisiblePage = Math.ceil(
+      (data.pagination.last_visible_page * 50) / limit,
+    );
+
+    return c.json({
+      pagination: {
+        last_visible_page: lastVisiblePage,
+        has_next_page: hasNext,
+        current_page: page,
+        items: {
+          count: slicedData.length,
+          total: data.pagination.last_visible_page * 50,
+          per_page: limit,
+        },
+      },
+      data: slicedData,
+    });
   } catch (error: any) {
     return c.json(jikanError(500, error.message), 500);
   }
@@ -797,16 +1355,114 @@ app.get("/manga/:id/external", async (c) => {
 
 app.get("/users", async (c) => {
   const q = c.req.query("q");
+  const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "25");
+
+  // Jikan filters
+  const gender = c.req.query("gender");
+  const location = c.req.query("location");
+  const maxAge = c.req.query("maxAge")
+    ? parseInt(c.req.query("maxAge")!)
+    : undefined;
+  const minAge = c.req.query("minAge")
+    ? parseInt(c.req.query("minAge")!)
+    : undefined;
+
   if (!q) {
     return c.json(
       jikanError(400, 'Query parameter "q" is required for search'),
       400,
     );
   }
+
+  const malShow = Math.floor(((page - 1) * limit) / 20) * 20;
+
   try {
-    const html = await fetchMAL(`/users.php?q=${encodeURIComponent(q)}`);
+    const html = await fetchMAL(
+      `/users.php?q=${encodeURIComponent(q)}&show=${malShow}`,
+    );
     const data = parseUserSearch(html);
-    return c.json(data);
+
+    let results = data.data;
+
+    const hasDemographicFilters =
+      gender || location || maxAge !== undefined || minAge !== undefined;
+    if (hasDemographicFilters && results.length > 0) {
+      const detailedUsers = await Promise.all(
+        results.map(async (user: any) => {
+          try {
+            const profileHtml = await fetchMAL(`/profile/${user.username}`);
+            const profile = parseUser(profileHtml);
+            return {
+              ...user,
+              gender: profile.gender,
+              location: profile.location,
+              age: calculateAge(profile.birthday),
+            };
+          } catch (e) {
+            return null;
+          }
+        }),
+      );
+
+      results = detailedUsers.filter((user: any) => {
+        if (!user) return false;
+
+        if (gender && gender.toLowerCase() !== "any") {
+          if (
+            !user.gender ||
+            user.gender.toLowerCase() !== gender.toLowerCase()
+          )
+            return false;
+        }
+
+        if (location) {
+          if (
+            !user.location ||
+            !user.location.toLowerCase().includes(location.toLowerCase())
+          )
+            return false;
+        }
+
+        if (user.age !== undefined) {
+          if (minAge !== undefined && user.age < minAge) return false;
+          if (maxAge !== undefined && user.age > maxAge) return false;
+        } else if (minAge !== undefined || maxAge !== undefined) {
+          return false;
+        }
+
+        return true;
+      });
+
+      results.forEach((user: any) => {
+        delete user.gender;
+        delete user.location;
+        delete user.age;
+      });
+    }
+
+    const startIndex = ((page - 1) * limit) % 20;
+    const endIndex = startIndex + limit;
+    const slicedData = results.slice(startIndex, endIndex);
+
+    const hasNext = data.pagination.has_next_page || endIndex < results.length;
+    const lastVisiblePage = Math.ceil(
+      (data.pagination.last_visible_page * 20) / limit,
+    );
+
+    return c.json({
+      pagination: {
+        last_visible_page: lastVisiblePage,
+        has_next_page: hasNext,
+        current_page: page,
+        items: {
+          count: slicedData.length,
+          total: data.pagination.last_visible_page * 20,
+          per_page: limit,
+        },
+      },
+      data: slicedData,
+    });
   } catch (error: any) {
     return c.json(jikanError(500, error.message), 500);
   }

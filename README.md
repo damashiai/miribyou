@@ -51,13 +51,51 @@ All endpoints use the `GET` method and are prefixed with `/v4`.
 
 ### Search Parameters
 
-For `/v4/anime` and `/v4/manga` search endpoints, the following optional parameters are available:
+The query search endpoints support full Jikan v4 parity query parameters:
 
-- `?page=n` - Paginate through search results (50 items per page).
-- `?hover=1` - **Opt-in Extended Metadata.** MAL's search pages do not natively expose all data fields. Enabling `hover=1` commands the API to fetch the hidden "hover popup" for every single result to achieve true Jikan v4 parity (resolving exact dates, `scored_by`, `rank`, `popularity`, etc.).
+#### Anime Search (`/v4/anime`)
+- `q`: search query string
+- `page`: page number (pagination)
+- `limit`: results limit (default: 25)
+- `type`: `TV`, `OVA`, `Movie`, `Special`, `ONA`, `Music`
+- `score`, `min_score`, `max_score`: filter by score criteria
+- `status`: `airing`, `complete`, `upcoming`
+- `rating`: `g`, `pg`, `pg13`, `r17`, `r`, `rx`
+- `sfw`: `true` to filter out adult entries
+- `genres`, `genres_exclude`: comma-separated genre IDs (e.g. `1,2,3`)
+- `order_by`: `mal_id`, `title`, `start_date`, `end_date`, `episodes`, `score`, `scored_by`, `rank`, `popularity`, `members`
+- `sort`: `desc`, `asc`
+- `letter`: first letter of title
+- `producers`: comma-separated producer IDs
+- `start_date`, `end_date`: date string `YYYY-MM-DD`
+- `hover=1`: Opt-in Extended Metadata. Resolves hidden MAL data fields concurrently.
+
+#### Manga Search (`/v4/manga`)
+- `q`: search query string
+- `page`: page number
+- `limit`: results limit (default: 25)
+- `type`: `manga`, `novel`, `lightnovel`, `oneshot`, `doujin`, `manhwa`, `manhua`
+- `score`, `min_score`, `max_score`: filter by score criteria
+- `status`: `publishing`, `complete`, `hiatus`, `discontinued`, `upcoming`
+- `sfw`: `true` to filter out adult entries
+- `genres`, `genres_exclude`: comma-separated genre IDs
+- `order_by`: `mal_id`, `title`, `start_date`, `end_date`, `chapters`, `volumes`, `score`, `scored_by`, `rank`, `popularity`
+- `sort`: `desc`, `asc`
+- `letter`: first letter of title
+- `magazines`: comma-separated magazine IDs
+- `start_date`, `end_date`: date string `YYYY-MM-DD`
+- `hover=1`: Opt-in Extended Metadata popup fetcher.
+
+#### User Search (`/v4/users`)
+- `q`: search query string (required)
+- `page`: page number
+- `limit`: results limit (default: 25)
+- `gender`: `any`, `male`, `female`, `nonbinary` (performs profile check)
+- `location`: filter by location
+- `minAge`, `maxAge`: filter by user age
 
 > [!WARNING]
-> **Use `?hover=1` sparingly.** It fires concurrent background requests for _every_ item in the search result. Not only does this drastically increase response times, but some hover data on MAL may occasionally be unavailable, incomplete, or partially incorrect.
+> **Use `?hover=1` sparingly.** It triggers concurrent background requests for all search results, increasing response times. Note that `?hover` is usually only applicable under the HTML scraper path (when no MAL API Client ID is provided).
 
 ### Anime
 
