@@ -34,8 +34,11 @@ describe("Index Page", () => {
     expect(data.production_api_url).toBe("https://example.com/v4/");
   });
 
-  it("returns 404 for root without prefix", async () => {
+  it("responds with Jikan-like metadata on root without prefix", async () => {
     const response = await SELF.fetch("https://example.com/");
-    expect(response.status).toBe(404);
+    const data = (await response.json()) as any;
+    expect(response.status).toBe(200);
+    expect(data.author_url).toBe("https://github.com/nattadasu");
+    expect(data.version).toBe("4.1.0");
   });
 });

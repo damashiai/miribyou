@@ -46,7 +46,7 @@ const app = new Hono<{ Bindings: { MAL_CLIENT_ID?: string } }>().basePath(
 
 app.use(trimTrailingSlash());
 
-app.get("/", async (c) => {
+const getMetadata = async (c: any) => {
   const malHeartbeat = {
     status: "HEALTHY",
     score: 1.0,
@@ -85,7 +85,9 @@ app.get("/", async (c) => {
     status_url: null,
     myanimelist_heartbeat: malHeartbeat,
   });
-});
+};
+
+app.get("/", getMetadata);
 
 app.get("/anime", async (c) => {
   const q = c.req.query("q");
@@ -987,4 +989,13 @@ app.notFound((c) => {
   return c.json(jikanError(404, "Resource not found"), 404);
 });
 
-export default app;
+export default {
+  async fetch(request: Request, env: any, ctx: any) {
+    const url = new URL(request.url);
+    if (url.pathname === "/") {
+      url.pathname = "/v4/";
+      request = new Request(url.toString(), request);
+    }
+    return app.fetch(request, env, ctx);
+  },
+};
