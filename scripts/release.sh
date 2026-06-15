@@ -46,12 +46,17 @@ TAG_NAME="v$VERSION"
 echo "Creating git tag $TAG_NAME..."
 git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
 
-# 7. Create GitHub Release (if gh CLI is available)
+# 7. Push commits and tags to origin
+echo "Pushing changes and tag to origin..."
+git push origin main
+git push origin "$TAG_NAME"
+
+# 8. Create GitHub Release (if gh CLI is available)
 if command -v gh &> /dev/null; then
   echo "GitHub CLI found. Creating GitHub release for $TAG_NAME..."
   gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "Release version $TAG_NAME"
 else
-  echo "GitHub CLI (gh) not found. Skipping release creation. Please push tags manually using: git push origin $TAG_NAME"
+  echo "GitHub CLI (gh) not found. Skipping release creation."
 fi
 
 echo "Version bump and release process finished successfully!"
