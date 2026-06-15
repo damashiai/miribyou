@@ -2,7 +2,8 @@
 
 As `miribyou` is a "lightweight" implementation of Jikan.moe v4 API in TypeScript and tried its best to not dependent on any database solution but let Cloudflare caches the response, you must follow following checkups:
 
-- [ ] Cloned [jikan-me/jikan-rest](https://github.com/jikan-me/jikan-rest) with a depth of 1 as `jikan_rest_ref/`, or if the repo already cloned, fetch and pull any changes from upstream
+- [ ] Clone [jikan-me/jikan-rest](https://github.com/jikan-me/jikan-rest) with a depth of 1 as `jikan_rest_ref/`, or if the repo already cloned, fetch and pull any changes from upstream
+  - [ ] If needed, clone [jikan-me/jikan](https://github.com/jikan-me/jikan) which is a PHP package specifically to parse MAL HTML as `jikan_ref/`.
 - [ ] Follow Jikan REST documentation to maintain structure and data parity to Jikan. Read [OpenAPI Spec](https://raw.githubusercontent.com/jikan-me/jikan-rest/master/storage/api-docs/api-docs.json)
 - [ ] Ensure you have generated `wrangler types`, and all files must be formatted with prettier (current default config is OK) and linted
 
@@ -11,6 +12,10 @@ As `miribyou` is a "lightweight" implementation of Jikan.moe v4 API in TypeScrip
 When comparing to live Jikan data, a slight deviation to the value (specifically over int/float for any kind of statistics) may be expected. When you encountered that, ensure that the deviation is not surpassed 20% than expected value, otherwise it should be considered as passed.
 
 Additionally, when specific data (usually on any type's search query) is not possible to be provided by regular HTML scrape but needs to be backed up by DB, e.g. Jikan has English and Native/Japanese title while MAL HTML response is impossible to fetch those, simply null it. We maintain a complete struct parity to Jikan, but we should not add or delete any keys that isn't defined by Jikan output.
+
+## Note on specific Agent CLI
+
+- **Google Antigravity, Google Gemini**: **FETCH ALL REQUIRED DEPENDENCIES STATED ON CHECKUPS BEFORE DOING WEBSEARCH** Your question on implementation may can be explained on those dependencies.
 
 ---
 
