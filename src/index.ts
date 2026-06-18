@@ -41,6 +41,7 @@ import { parseFriends } from "./parsers/friends";
 import { parseUserClubs } from "./parsers/user_clubs";
 import { parseHistory } from "./parsers/history";
 import { parseHover } from "./parsers/hover";
+import { parseSeasonList, parseSeason } from "./parsers/seasons";
 
 const app = new Hono<{ Bindings: { MAL_CLIENT_ID?: string } }>().basePath(
   "/v4",
@@ -1347,6 +1348,484 @@ app.get("/manga/:id/external", async (c) => {
     const html = await fetchMAL(`/manga/${id}`);
     const data = parseManga(html);
     return c.json({ data: data.external });
+  } catch (error: any) {
+    const status = error.message.includes("404") ? 404 : 500;
+    return c.json(jikanError(status, error.message), status);
+  }
+});
+
+function getCurrentSeason() {
+  const now = new Date();
+  const month = now.getMonth();
+  const year = now.getFullYear();
+
+  let season: "winter" | "spring" | "summer" | "fall";
+  if (month < 3) season = "winter";
+  else if (month < 6) season = "spring";
+  else if (month < 9) season = "summer";
+  else season = "fall";
+
+  return { year, season };
+}
+
+function getNextSeason(year: number, season: string) {
+  const seasons = ["winter", "spring", "summer", "fall"];
+  let idx = seasons.indexOf(season.toLowerCase());
+  if (idx === -1) idx = 0;
+
+  idx++;
+  if (idx === 4) {
+    return { year: year + 1, season: "winter" };
+  }
+  return { year, season: seasons[idx] };
+}
+
+app.get("/seasons", async (c) => {
+  try {
+    const html = await fetchMAL("/anime/season/archive");
+    const data = parseSeasonList(html);
+    return c.json(data);
+  } catch (error: any) {
+    return c.json(jikanError(500, error.message), 500);
+  }
+});
+
+app.get("/seasons/now", async (c) => {
+  const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "25");
+  const hover = c.req.query("hover") === "1" || c.req.query("hover") === "true";
+  const filter = c.req.query("filter");
+  const sfw = c.req.query("sfw") === "1" || c.req.query("sfw") === "true";
+
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const { year, season } = getCurrentSeason();
+      const offset = (page - 1) * limit;
+      const apiResponse = await fetchFromMalApi(
+        `/anime/season/${year}/${season}`,
+        malClientId,
+        {
+          limit: "100", // Fetch more for filtering
+          offset: offset.toString(),
+          fields: ANIME_FIELDS,
+          nsfw: "true",
+        },
+      );
+      let results = (apiResponse.data || []).map((item: any) => {
+        const data = parseMalApiAnime(item.node);
+        return data;
+      });
+
+      if (filter) {
+        results = results.filter(
+          (item: any) => item.type?.toLowerCase() === filter.toLowerCase(),
+        );
+      }
+      if (sfw) {
+        results = results.filter((item: any) => {
+          if (item.rating?.toLowerCase().includes("rx")) return false;
+          if (
+            item.genres?.some(
+              (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+            )
+          )
+            return false;
+          if (item.explicit_genres?.length > 0) return false;
+          return true;
+        });
+      }
+
+      const slicedData = results.slice(0, limit);
+      const hasNext = apiResponse.paging?.next ? true : false;
+      return c.json({
+        pagination: {
+          last_visible_page: hasNext ? page + 1 : page,
+          has_next_page: hasNext,
+          current_page: page,
+          items: {
+            count: slicedData.length,
+            total: results.length + (hasNext ? 100 : 0), // Estimate
+            per_page: limit,
+          },
+        },
+        data: slicedData,
+      });
+    } catch (e) {
+      // Fallback to scraper if API fails
+    }
+  }
+
+  try {
+    const html = await fetchMAL("/anime/season");
+    const data = parseSeason(html);
+    const { year: currentYear, season: currentSeason } = getCurrentSeason();
+    let results = data.data.map((item: any) => {
+      item.year = currentYear;
+      item.season = currentSeason;
+      return item;
+    });
+
+    if (filter) {
+      results = results.filter(
+        (item: any) => item.type?.toLowerCase() === filter.toLowerCase(),
+      );
+    }
+    if (sfw) {
+      results = results.filter((item: any) => {
+        if (item.rating?.toLowerCase().includes("rx")) return false;
+        if (
+          item.genres?.some(
+            (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+          )
+        )
+          return false;
+        if (item.explicit_genres?.length > 0) return false;
+        return true;
+      });
+    }
+
+    if (hover && results.length > 0) {
+      const startIndex = (page - 1) * limit;
+      const toEnrich = results.slice(startIndex, startIndex + limit);
+      await Promise.all(
+        toEnrich.map(async (item: any) => {
+          try {
+            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+              "X-Requested-With": "XMLHttpRequest",
+            });
+            const hoverData = parseHover(hoverHtml);
+            if (hoverData.score !== null) item.score = hoverData.score;
+            if (hoverData.scored_by !== null)
+              item.scored_by = hoverData.scored_by;
+            if (hoverData.rank !== null) item.rank = hoverData.rank;
+            if (hoverData.popularity !== null)
+              item.popularity = hoverData.popularity;
+            if (hoverData.members !== null) item.members = hoverData.members;
+            if (hoverData.status) item.status = hoverData.status;
+            if (hoverData.synopsis && item.synopsis.endsWith("..."))
+              item.synopsis = hoverData.synopsis;
+            if (hoverData.genres.length) item.genres = hoverData.genres;
+            if (hoverData.themes.length) item.themes = hoverData.themes;
+            if (hoverData.demographics.length)
+              item.demographics = hoverData.demographics;
+          } catch (e) {}
+        }),
+      );
+    }
+
+    const startIndex = (page - 1) * limit;
+    const slicedData = results.slice(startIndex, startIndex + limit);
+    const hasNext = startIndex + limit < results.length;
+
+    return c.json({
+      pagination: {
+        last_visible_page: Math.ceil(results.length / limit),
+        has_next_page: hasNext,
+        current_page: page,
+        items: {
+          count: slicedData.length,
+          total: results.length,
+          per_page: limit,
+        },
+      },
+      data: slicedData,
+    });
+  } catch (error: any) {
+    return c.json(jikanError(500, error.message), 500);
+  }
+});
+
+app.get("/seasons/upcoming", async (c) => {
+  const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "25");
+  const hover = c.req.query("hover") === "1" || c.req.query("hover") === "true";
+  const filter = c.req.query("filter");
+  const sfw = c.req.query("sfw") === "1" || c.req.query("sfw") === "true";
+
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const current = getCurrentSeason();
+      const next = getNextSeason(current.year, current.season);
+      const offset = (page - 1) * limit;
+      const apiResponse = await fetchFromMalApi(
+        `/anime/season/${next.year}/${next.season}`,
+        malClientId,
+        {
+          limit: "100",
+          offset: offset.toString(),
+          fields: ANIME_FIELDS,
+          nsfw: "true",
+        },
+      );
+      let results = (apiResponse.data || []).map((item: any) => {
+        const data = parseMalApiAnime(item.node);
+        return data;
+      });
+
+      if (filter) {
+        results = results.filter(
+          (item: any) => item.type?.toLowerCase() === filter.toLowerCase(),
+        );
+      }
+      if (sfw) {
+        results = results.filter((item: any) => {
+          if (item.rating?.toLowerCase().includes("rx")) return false;
+          if (
+            item.genres?.some(
+              (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+            )
+          )
+            return false;
+          if (item.explicit_genres?.length > 0) return false;
+          return true;
+        });
+      }
+
+      const slicedData = results.slice(0, limit);
+      const hasNext = apiResponse.paging?.next ? true : false;
+      return c.json({
+        pagination: {
+          last_visible_page: hasNext ? page + 1 : page,
+          has_next_page: hasNext,
+          current_page: page,
+          items: {
+            count: slicedData.length,
+            total: results.length + (hasNext ? 100 : 0), // Estimate
+            per_page: limit,
+          },
+        },
+        data: slicedData,
+      });
+    } catch (e) {
+      // Fallback to scraper
+    }
+  }
+
+  try {
+    const html = await fetchMAL("/anime/season/later");
+    const data = parseSeason(html);
+    const current = getCurrentSeason();
+    const next = getNextSeason(current.year, current.season);
+    let results = data.data.map((item: any) => {
+      item.year = next.year;
+      item.season = next.season;
+      return item;
+    });
+
+    if (filter) {
+      results = results.filter(
+        (item: any) => item.type?.toLowerCase() === filter.toLowerCase(),
+      );
+    }
+    if (sfw) {
+      results = results.filter((item: any) => {
+        if (item.rating?.toLowerCase().includes("rx")) return false;
+        if (
+          item.genres?.some(
+            (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+          )
+        )
+          return false;
+        if (item.explicit_genres?.length > 0) return false;
+        return true;
+      });
+    }
+
+    if (hover && results.length > 0) {
+      const startIndex = (page - 1) * limit;
+      const toEnrich = results.slice(startIndex, startIndex + limit);
+      await Promise.all(
+        toEnrich.map(async (item: any) => {
+          try {
+            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+              "X-Requested-With": "XMLHttpRequest",
+            });
+            const hoverData = parseHover(hoverHtml);
+            if (hoverData.score !== null) item.score = hoverData.score;
+            if (hoverData.scored_by !== null)
+              item.scored_by = hoverData.scored_by;
+            if (hoverData.rank !== null) item.rank = hoverData.rank;
+            if (hoverData.popularity !== null)
+              item.popularity = hoverData.popularity;
+            if (hoverData.members !== null) item.members = hoverData.members;
+            if (hoverData.status) item.status = hoverData.status;
+            if (hoverData.synopsis && item.synopsis.endsWith("..."))
+              item.synopsis = hoverData.synopsis;
+            if (hoverData.genres.length) item.genres = hoverData.genres;
+            if (hoverData.themes.length) item.themes = hoverData.themes;
+            if (hoverData.demographics.length)
+              item.demographics = hoverData.demographics;
+          } catch (e) {}
+        }),
+      );
+    }
+
+    const startIndex = (page - 1) * limit;
+    const slicedData = results.slice(startIndex, startIndex + limit);
+    const hasNext = startIndex + limit < results.length;
+
+    return c.json({
+      pagination: {
+        last_visible_page: Math.ceil(results.length / limit),
+        has_next_page: hasNext,
+        current_page: page,
+        items: {
+          count: slicedData.length,
+          total: results.length,
+          per_page: limit,
+        },
+      },
+      data: slicedData,
+    });
+  } catch (error: any) {
+    return c.json(jikanError(500, error.message), 500);
+  }
+});
+
+app.get("/seasons/:year/:season", async (c) => {
+  const { year, season } = c.req.param();
+  const page = parseInt(c.req.query("page") || "1");
+  const limit = parseInt(c.req.query("limit") || "25");
+  const hover = c.req.query("hover") === "1" || c.req.query("hover") === "true";
+  const filter = c.req.query("filter");
+  const sfw = c.req.query("sfw") === "1" || c.req.query("sfw") === "true";
+
+  const malClientId = c.req.header("x-mal-client-id") || c.env.MAL_CLIENT_ID;
+  if (malClientId) {
+    try {
+      const offset = (page - 1) * limit;
+      const apiResponse = await fetchFromMalApi(
+        `/anime/season/${year}/${season.toLowerCase()}`,
+        malClientId,
+        {
+          limit: "100",
+          offset: offset.toString(),
+          fields: ANIME_FIELDS,
+          nsfw: "true",
+        },
+      );
+      let results = (apiResponse.data || []).map((item: any) => {
+        const data = parseMalApiAnime(item.node);
+        return data;
+      });
+
+      if (filter) {
+        results = results.filter(
+          (item: any) => item.type?.toLowerCase() === filter.toLowerCase(),
+        );
+      }
+      if (sfw) {
+        results = results.filter((item: any) => {
+          if (item.rating?.toLowerCase().includes("rx")) return false;
+          if (
+            item.genres?.some(
+              (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+            )
+          )
+            return false;
+          if (item.explicit_genres?.length > 0) return false;
+          return true;
+        });
+      }
+
+      const slicedData = results.slice(0, limit);
+      const hasNext = apiResponse.paging?.next ? true : false;
+      return c.json({
+        pagination: {
+          last_visible_page: hasNext ? page + 1 : page,
+          has_next_page: hasNext,
+          current_page: page,
+          items: {
+            count: slicedData.length,
+            total: results.length + (hasNext ? 100 : 0), // Estimate
+            per_page: limit,
+          },
+        },
+        data: slicedData,
+      });
+    } catch (e) {
+      // Fallback to scraper
+    }
+  }
+
+  try {
+    const html = await fetchMAL(
+      `/anime/season/${year}/${season.toLowerCase()}`,
+    );
+    const data = parseSeason(html);
+    let results = data.data.map((item: any) => {
+      item.year = parseInt(year);
+      item.season = season.toLowerCase();
+      return item;
+    });
+
+    if (filter) {
+      results = results.filter(
+        (item: any) => item.type?.toLowerCase() === filter.toLowerCase(),
+      );
+    }
+    if (sfw) {
+      results = results.filter((item: any) => {
+        if (item.rating?.toLowerCase().includes("rx")) return false;
+        if (
+          item.genres?.some(
+            (g: any) => g.mal_id === 12 || g.name?.toLowerCase() === "hentai",
+          )
+        )
+          return false;
+        if (item.explicit_genres?.length > 0) return false;
+        return true;
+      });
+    }
+
+    if (hover && results.length > 0) {
+      const startIndex = (page - 1) * limit;
+      const toEnrich = results.slice(startIndex, startIndex + limit);
+      await Promise.all(
+        toEnrich.map(async (item: any) => {
+          try {
+            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+              "X-Requested-With": "XMLHttpRequest",
+            });
+            const hoverData = parseHover(hoverHtml);
+            if (hoverData.score !== null) item.score = hoverData.score;
+            if (hoverData.scored_by !== null)
+              item.scored_by = hoverData.scored_by;
+            if (hoverData.rank !== null) item.rank = hoverData.rank;
+            if (hoverData.popularity !== null)
+              item.popularity = hoverData.popularity;
+            if (hoverData.members !== null) item.members = hoverData.members;
+            if (hoverData.status) item.status = hoverData.status;
+            if (hoverData.synopsis && item.synopsis.endsWith("..."))
+              item.synopsis = hoverData.synopsis;
+            if (hoverData.genres.length) item.genres = hoverData.genres;
+            if (hoverData.themes.length) item.themes = hoverData.themes;
+            if (hoverData.demographics.length)
+              item.demographics = hoverData.demographics;
+          } catch (e) {}
+        }),
+      );
+    }
+
+    const startIndex = (page - 1) * limit;
+    const slicedData = results.slice(startIndex, startIndex + limit);
+    const hasNext = startIndex + limit < results.length;
+
+    return c.json({
+      pagination: {
+        last_visible_page: Math.ceil(results.length / limit),
+        has_next_page: hasNext,
+        current_page: page,
+        items: {
+          count: slicedData.length,
+          total: results.length,
+          per_page: limit,
+        },
+      },
+      data: slicedData,
+    });
   } catch (error: any) {
     const status = error.message.includes("404") ? 404 : 500;
     return c.json(jikanError(status, error.message), status);

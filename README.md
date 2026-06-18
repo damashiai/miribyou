@@ -33,7 +33,6 @@ Miribyou is a lightweight MAL (MyAnimeList) scraper built for data and structure
 3. Login to Wrangler: `npx wrangler login`.
 4. Deploy: `npm run deploy`.
 
-
 ### Vercel
 
 You can deploy miribyou to Vercel using the button above or by connecting your GitHub repository to the Vercel dashboard.
@@ -105,6 +104,12 @@ The query search endpoints support full Jikan v4 parity query parameters:
 - `location`: filter by location
 - `minAge`, `maxAge`: filter by user age
 
+#### Seasons (`/v4/seasons`)
+
+- `page`: page number (pagination)
+- `limit`: results limit (default: 25)
+- `hover=1`: Opt-in Extended Metadata.
+
 > [!WARNING]
 > **Use `?hover=1` sparingly.** It triggers concurrent background requests for all search results, increasing response times. Note that `?hover` is usually only applicable under the HTML scraper path (when no MAL API Client ID is provided).
 
@@ -147,6 +152,13 @@ The query search endpoints support full Jikan v4 parity query parameters:
 - `/v4/manga/:id/reviews` - User reviews
 - `/v4/manga/:id/relations` - Related entries
 - `/v4/manga/:id/external` - External links
+
+### Seasons
+
+- `/v4/seasons` - List of all archived seasons
+- `/v4/seasons/now` - Current season anime
+- `/v4/seasons/upcoming` - Upcoming season anime (Season Later)
+- `/v4/seasons/:year/:season` - Specific seasonal anime archive
 
 ### Users
 
