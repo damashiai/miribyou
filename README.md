@@ -42,6 +42,8 @@ Designed for serverless environments like Cloudflare Workers (or any modern JS r
   - [Cloudflare Workers](#cloudflare-workers)
   - [Vercel](#vercel)
   - [Official MAL API Integration](#official-mal-api-integration-optional)
+- [Client Compatibility & Detection](#-client-compatibility--detection)
+- [Caching Strategy](#-caching-strategy)
 - [API Endpoints](#⚡-api-endpoints)
   - [Base](#base)
   - [Anime](#anime)
@@ -87,6 +89,39 @@ You can configure miribyou to use the official MyAnimeList v2 API to speed up se
 - **Client Override:** Clients can dynamically specify a Client ID by passing the `X-MAL-CLIENT-ID` header.
 
 To get your Client ID, log in to MyAnimeList, visit the [API Config page](https://myanimelist.net/apiconfig), and create a new **web** client. If a redirect URL is required, you can use `http://localhost:8787`.
+
+---
+
+## 🔌 Client Compatibility & Detection
+
+`miribyou` is designed as a drop-in replacement for Jikan v4. Clients can detect whether an API deployment is powered by `miribyou` using the response headers:
+
+- **Header:** `X-Powered-By`
+- **Value:** `miribyou (Jikan-like)`
+
+#### Example Detection (JavaScript / TypeScript)
+
+```typescript
+const response = await fetch("https://api.example.com/v4/anime/1");
+
+const isMiribyou =
+  response.headers.get("X-Powered-By") === "miribyou (Jikan-like)";
+if (isMiribyou) {
+  console.log("This deployment is powered by miribyou!");
+}
+```
+
+---
+
+## 💾 Caching Strategy
+
+To keep the service lightweight and database-free, `miribyou` returns cache headers instructing browsers and CDNs (such as Cloudflare and Vercel) to cache successful `GET` responses for 1 day:
+
+- **Headers set on successful GET requests (status 200-299):**
+  - `Cache-Control: public, max-age=86400, s-maxage=86400`
+  - `CDN-Cache-Control: public, max-age=86400, s-maxage=86400`
+  - `Vercel-CDN-Cache-Control: public, max-age=86400, s-maxage=86400`
+- **Exclusions:** Caching is completely bypassed on base metadata endpoints (`/` and `/v4/`) and on any non-GET or unsuccessful requests.
 
 ---
 
