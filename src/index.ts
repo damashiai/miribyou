@@ -1438,14 +1438,16 @@ app.get("/seasons/now", async (c) => {
 
       const slicedData = results.slice(0, limit);
       const hasNext = apiResponse.paging?.next ? true : false;
+      const hasNextPage = results.length > limit || hasNext;
+      const totalEstimate = offset + results.length + (hasNext ? 100 : 0);
       return c.json({
         pagination: {
-          last_visible_page: hasNext ? page + 1 : page,
-          has_next_page: hasNext,
+          last_visible_page: Math.ceil(totalEstimate / limit),
+          has_next_page: hasNextPage,
           current_page: page,
           items: {
             count: slicedData.length,
-            total: results.length + (hasNext ? 100 : 0), // Estimate
+            total: totalEstimate,
             per_page: limit,
           },
         },
@@ -1585,14 +1587,16 @@ app.get("/seasons/upcoming", async (c) => {
 
       const slicedData = results.slice(0, limit);
       const hasNext = apiResponse.paging?.next ? true : false;
+      const hasNextPage = results.length > limit || hasNext;
+      const totalEstimate = offset + results.length + (hasNext ? 100 : 0);
       return c.json({
         pagination: {
-          last_visible_page: hasNext ? page + 1 : page,
-          has_next_page: hasNext,
+          last_visible_page: Math.ceil(totalEstimate / limit),
+          has_next_page: hasNextPage,
           current_page: page,
           items: {
             count: slicedData.length,
-            total: results.length + (hasNext ? 100 : 0), // Estimate
+            total: totalEstimate,
             per_page: limit,
           },
         },
@@ -1732,14 +1736,16 @@ app.get("/seasons/:year/:season", async (c) => {
 
       const slicedData = results.slice(0, limit);
       const hasNext = apiResponse.paging?.next ? true : false;
+      const hasNextPage = results.length > limit || hasNext;
+      const totalEstimate = offset + results.length + (hasNext ? 100 : 0);
       return c.json({
         pagination: {
-          last_visible_page: hasNext ? page + 1 : page,
-          has_next_page: hasNext,
+          last_visible_page: Math.ceil(totalEstimate / limit),
+          has_next_page: hasNextPage,
           current_page: page,
           items: {
             count: slicedData.length,
-            total: results.length + (hasNext ? 100 : 0), // Estimate
+            total: totalEstimate,
             per_page: limit,
           },
         },
