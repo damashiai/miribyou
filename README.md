@@ -14,6 +14,9 @@ Designed for serverless environments like Cloudflare Workers (or any modern JS r
   <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Hono-E36002?logo=hono&logoColor=white" alt="Hono" />
   <img src="https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white" alt="Vitest" />
+  <a href="https://nttds.my.id/discord">
+    <img src="https://img.shields.io/badge/Join_our_Discord-5865F2?logo=discord&logoColor=white" alt="Discord" />
+  </a>
 </p>
 
 <p align="center">
