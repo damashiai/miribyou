@@ -104,10 +104,12 @@ The query search endpoints support full Jikan v4 parity query parameters:
 - `location`: filter by location
 - `minAge`, `maxAge`: filter by user age
 
-#### Seasons (`/v4/seasons`)
+#### Seasons (`/v4/seasons/now`, `/v4/seasons/upcoming`, `/v4/seasons/:year/:season`)
 
 - `page`: page number (pagination)
 - `limit`: results limit (default: 25)
+- `filter`: entry type (`tv`, `movie`, `ova`, `special`, `ona`, `music`)
+- `sfw`: Safe For Work toggle (`?sfw=1` or `?sfw=true`) to filter out Rx/Hentai content
 - `hover=1`: Opt-in Extended Metadata.
 
 > [!WARNING]
