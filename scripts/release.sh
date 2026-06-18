@@ -1,62 +1,90 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
-# Target version argument check
-if [ -z "$1" ]; then
-  echo "Error: Please specify the version to bump to (e.g., 4.1.2)."
-  exit 1
+# bump-version.sh: Automatically bumps SemVer version, updates project files, commits and tags it.
+
+# 1. Determine current version from package.json
+CURRENT_VERSION=$(node -p "require('./package.json').version")
+echo "Current version: $CURRENT_VERSION"
+
+# 2. Parse argument (bump type or specific version)
+ARG=${1:-patch}
+
+if [[ $ARG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  NEW_VERSION=$ARG
+else
+  # Split version parts
+  IFS='.' read -r major minor patch <<< "$CURRENT_VERSION"
+
+  case "$ARG" in
+    major)
+      major=$((major + 1))
+      minor=0
+      patch=0
+      ;;
+    minor)
+      minor=$((minor + 1))
+      patch=0
+      ;;
+    patch)
+      patch=$((patch + 1))
+      ;;
+    *)
+      echo "Usage: $0 [major|minor|patch|X.Y.Z]"
+      exit 1
+      ;;
+  esac
+  NEW_VERSION="$major.$minor.$patch"
 fi
 
-VERSION=$1
+NEW_TAG="v$NEW_VERSION"
+echo "Bumping to: $NEW_VERSION"
 
-# Basic semver format check
-if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "Error: Version must follow semver format X.Y.Z (e.g., 4.1.2)."
-  exit 1
-fi
+# 3. Update files
+echo "Updating files..."
 
-echo "Bumping version to v$VERSION..."
+# 3.1 Update package.json (and package-lock.json)
+npm version "$NEW_VERSION" --no-git-tag-version
 
-# Get current version from package.json
-CURRENT_VERSION=$(node -e "console.log(require('./package.json').version)")
-echo "Current version is v$CURRENT_VERSION."
+# 3.2 Update README.md
+# We use a more robust regex to find the version line
+sed -i -E "s/- \*\*Version:\*\* \`[0-9]+\.[0-9]+\.[0-9]+\`/- \*\*Version:\*\* \`$NEW_VERSION\`/g" README.md
 
-# 1. Update package.json
-sed -i "s/\"version\": \"$CURRENT_VERSION\"/\"version\": \"$VERSION\"/g" package.json
+# 3.3 Update test/index.spec.ts
+sed -i "s/\"$CURRENT_VERSION\"/\"$NEW_VERSION\"/g" test/index.spec.ts
 
-# 2. Update README.md
-sed -i "s/- \*\*Version:\*\* \`$CURRENT_VERSION\`/- \*\*Version:\*\* \`$VERSION\`/g" README.md
+echo "Files updated successfully."
 
-# 3. Update test/index.spec.ts
-sed -i "s/\"$CURRENT_VERSION\"/\"$VERSION\"/g" test/index.spec.ts
-
-echo "Updated files successfully."
-
-# 4. Run tests before committing
-echo "Running tests to verify type safety and suite sanity..."
+# 4. Run tests
+echo "Running tests to verify suite sanity..."
 npm run test -- --run
 
-# 5. Commit the changes
+# 5. Git commit & tag
 echo "Committing version bump..."
 git add package.json README.md test/index.spec.ts
-git commit -m "chore: bump version to v$VERSION"
+if [ -f "package-lock.json" ]; then
+  git add package-lock.json
+fi
 
-# 6. Create Git Tag
-TAG_NAME="v$VERSION"
-echo "Creating git tag $TAG_NAME..."
-git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+git commit -m "chore: bump version to $NEW_VERSION"
+git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
 
-# 7. Push commits and tags to origin
+# 6. Push to origin
 echo "Pushing changes and tag to origin..."
-git push origin main
-git push origin "$TAG_NAME"
+# We assume 'main' is the default branch. 
+# Alternatively use $(git rev-parse --abbrev-ref HEAD)
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+git push origin "$CURRENT_BRANCH"
+git push origin "$NEW_TAG"
 
-# 8. Create GitHub Release (if gh CLI is available)
+# 7. Create GitHub Release (if gh CLI is available)
 if command -v gh &> /dev/null; then
-  echo "GitHub CLI found. Creating GitHub release for $TAG_NAME..."
-  gh release create "$TAG_NAME" --title "$TAG_NAME" --notes "Release version $TAG_NAME"
+  echo "GitHub CLI found. Creating GitHub release for $NEW_TAG..."
+  gh release create "$NEW_TAG" --title "$NEW_TAG" --notes "Release version $NEW_TAG"
 else
   echo "GitHub CLI (gh) not found. Skipping release creation."
 fi
 
-echo "Version bump and release process finished successfully!"
+echo "=============================================="
+echo "Successfully bumped version and released $NEW_TAG!"
+echo "=============================================="
