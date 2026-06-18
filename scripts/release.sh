@@ -46,11 +46,7 @@ echo "Updating files..."
 # 3.1 Update package.json (and package-lock.json)
 npm version "$NEW_VERSION" --no-git-tag-version
 
-# 3.2 Update README.md
-# We use a more robust regex to find the version line
-sed -i -E "s/- \*\*Version:\*\* \`[0-9]+\.[0-9]+\.[0-9]+\`/- \*\*Version:\*\* \`$NEW_VERSION\`/g" README.md
-
-# 3.3 Update test/index.spec.ts
+# 3.2 Update test/index.spec.ts
 sed -i "s/\"$CURRENT_VERSION\"/\"$NEW_VERSION\"/g" test/index.spec.ts
 
 echo "Files updated successfully."
@@ -61,7 +57,7 @@ npm run test -- --run
 
 # 5. Git commit & tag
 echo "Committing version bump..."
-git add package.json README.md test/index.spec.ts
+git add package.json test/index.spec.ts
 if [ -f "package-lock.json" ]; then
   git add package-lock.json
 fi
