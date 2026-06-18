@@ -1,6 +1,6 @@
 # miribyou
 
-Miribyou is a lightweight MAL (MyAnimeList) scraper built for performance and accuracy. It's designed to run on Cloudflare Workers (or any modern JS environment) and provides high-fidelity JSON responses by parsing MAL's HTML directly.
+Miribyou is a lightweight MAL (MyAnimeList) scraper built for data and structure parity to Jikan v4 due of its public API deprecation. It's designed to run on Cloudflare Workers (or any modern JS environment) without any dependency requiring database to be deployed and initialized, and provides high-fidelity JSON responses by parsing MAL's HTML directly.
 
 ![Version](https://img.shields.io/github/package-json/v/nattadasu/miribyou)
 ![License](https://img.shields.io/github/license/nattadasu/miribyou)
@@ -16,6 +16,9 @@ Miribyou is a lightweight MAL (MyAnimeList) scraper built for performance and ac
 > [!IMPORTANT]
 > This project aims for parity with Jikan V4 data structures and versioning. All endpoints are prefixed with `/v4/`.
 
+> [!WARNING]
+> Since this project does not require database to deploy and initialized for first time, some endpoints/methods may return stub data. Usually providing `MAL_CLIENT_ID` can resolve this partially.
+
 ## API Information
 
 - **Version:** `4.1.4` (Jikan Parity)
@@ -30,16 +33,21 @@ Miribyou is a lightweight MAL (MyAnimeList) scraper built for performance and ac
 3. Login to Wrangler: `npx wrangler login`.
 4. Deploy: `npm run deploy`.
 
-### Official MAL API Integration (Optional)
-
-Miribyou can optionally utilize the official MyAnimeList v2 API and map it to Jikan-like V4 JSON structures. This bypasses HTML scraping for search and detail endpoints:
-
-- **Environment Secret/Variable:** Set the `MAL_CLIENT_ID` variable or secret in Wrangler (or your hosting platform).
-- **Request Header:** Alternatively, clients can specify their own Client ID dynamically by sending the `X-MAL-CLIENT-ID` header with their request.
 
 ### Vercel
 
 You can deploy miribyou to Vercel using the button above or by connecting your GitHub repository to the Vercel dashboard.
+
+### Official MAL API Integration (Optional)
+
+Miribyou can optionally utilize the official MyAnimeList v2 API and map it to Jikan-like V4 JSON structures. This bypasses HTML scraping for search and additionally add more info on detail endpoints:
+
+- **Environment Secret/Variable:** Set the `MAL_CLIENT_ID` variable or secret in Wrangler (or your hosting platform).
+- **Request Header:** Alternatively, clients can specify their own Client ID dynamically by sending the `X-MAL-CLIENT-ID` header with their request.
+
+To get `MAL_CLIENT_ID`, sign in to MyAnimeList, visit [API Config page](https://myanimelist.net/apiconfig) and create a new **web** project. Fill all required data, and copy Client ID once finished.
+
+If App Redirect URL is somehow still required, fill `http://localhost:8787` instead.
 
 ## Endpoints
 
