@@ -1,214 +1,259 @@
 # miribyou
 
-Miribyou is a lightweight MAL (MyAnimeList) scraper built for data and structure parity to Jikan v4 due of its public API deprecation. It's designed to run on Cloudflare Workers (or any modern JS environment) without any dependency requiring database to be deployed and initialized, and provides high-fidelity JSON responses by parsing MAL's HTML directly.
+Miribyou is a lightweight, database-free MyAnimeList (MAL) scraper built to provide structure and data parity with the Jikan v4 API.
 
-![Version](https://img.shields.io/github/package-json/v/nattadasu/miribyou)
-![License](https://img.shields.io/github/license/nattadasu/miribyou)
-![Stars](https://img.shields.io/github/github-stats/stars/nattadasu/miribyou)
-![Issues](https://img.shields.io/github/issues/nattadasu/miribyou)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Hono](https://img.shields.io/badge/Hono-E36002?logo=hono&logoColor=white)
-![Vitest](https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white)
+Designed for serverless environments like Cloudflare Workers (or any modern JS runtime), miribyou requires no database setup. It achieves high-fidelity JSON output by parsing MAL's HTML directly, optionally enhanced by the official MAL API.
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/nattadasu/miribyou)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/nattadasu/miribyou)
+---
+
+<p align="center">
+  <img src="https://img.shields.io/github/package-json/v/nattadasu/miribyou" alt="Version" />
+  <img src="https://img.shields.io/github/license/nattadasu/miribyou" alt="License" />
+  <img src="https://img.shields.io/github/stars/nattadasu/miribyou" alt="Stars" />
+  <img src="https://img.shields.io/github/issues/nattadasu/miribyou" alt="Issues" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Hono-E36002?logo=hono&logoColor=white" alt="Hono" />
+  <img src="https://img.shields.io/badge/Vitest-6E9F18?logo=vitest&logoColor=white" alt="Vitest" />
+</p>
+
+<p align="center">
+  <a href="https://deploy.workers.cloudflare.com/?url=https://github.com/nattadasu/miribyou">
+    <img src="https://deploy.workers.cloudflare.com/button" alt="Deploy to Cloudflare Workers" />
+  </a>
+  <a href="https://vercel.com/import/project?template=https://github.com/nattadasu/miribyou">
+    <img src="https://vercel.com/button" alt="Deploy with Vercel" />
+  </a>
+</p>
 
 > [!IMPORTANT]
-> This project aims for parity with Jikan V4 data structures and versioning. All endpoints are prefixed with `/v4/`.
+> This project aims for parity with Jikan V4 data structures and versioning. All endpoints are prefixed with `/v4`.
 
 > [!WARNING]
-> Since this project does not require database to deploy and initialized for first time, some endpoints/methods may return stub data. Usually providing `MAL_CLIENT_ID` can resolve this partially.
+> Because miribyou does not rely on a persistent database, some advanced search or filtering queries may return stub/partial data. Providing a `MAL_CLIENT_ID` helps resolve many of these limitations.
 
-## API Information
+---
 
-- **Version:** `4.2.0` (Jikan Parity)
-- **Discord:** [Join our Discord](https://nttds.my.id/discord)
+## 📖 Table of Contents
 
-## Deployment
+- [Deployment](#🚀-deployment)
+  - [Cloudflare Workers](#cloudflare-workers)
+  - [Vercel](#vercel)
+  - [Official MAL API Integration](#official-mal-api-integration-optional)
+- [API Endpoints](#⚡-api-endpoints)
+  - [Base](#base)
+  - [Anime](#anime)
+  - [Manga](#manga)
+  - [Seasons](#seasons)
+  - [Users](#users)
+- [Query Parameter Reference](#⚙️-query-parameter-reference)
+  - [Anime Search](#anime-search-v4anime)
+  - [Manga Search](#manga-search-v4manga)
+  - [User Search](#user-search-v4users)
+  - [Seasons](#seasons-v4seasonsnow-v4seasonsupcoming-v4seasonsyearseason)
+- [Development](#🛠️-development)
+
+---
+
+## 🚀 Deployment
 
 ### Cloudflare Workers
 
 1. Clone the repository.
-2. Install dependencies: `npm install`.
-3. Login to Wrangler: `npx wrangler login`.
-4. Deploy: `npm run deploy`.
-
-### Vercel
-
-You can deploy miribyou to Vercel using the button above or by connecting your GitHub repository to the Vercel dashboard.
-
-### Official MAL API Integration (Optional)
-
-Miribyou can optionally utilize the official MyAnimeList v2 API and map it to Jikan-like V4 JSON structures. This bypasses HTML scraping for search and additionally add more info on detail endpoints:
-
-- **Environment Secret/Variable:** Set the `MAL_CLIENT_ID` variable or secret in Wrangler (or your hosting platform).
-- **Request Header:** Alternatively, clients can specify their own Client ID dynamically by sending the `X-MAL-CLIENT-ID` header with their request.
-
-To get `MAL_CLIENT_ID`, sign in to MyAnimeList, visit [API Config page](https://myanimelist.net/apiconfig) and create a new **web** project. Fill all required data, and copy Client ID once finished.
-
-If App Redirect URL is somehow still required, fill `http://localhost:8787` instead.
-
-## Endpoints
-
-All endpoints use the `GET` method and are prefixed with `/v4`.
-
-### Base
-
-- `/v4/` - API metadata and MyAnimeList heartbeat
-
-### Search Parameters
-
-The query search endpoints support full Jikan v4 parity query parameters:
-
-#### Anime Search (`/v4/anime`)
-
-- `q`: search query string
-- `page`: page number (pagination)
-- `limit`: results limit (default: 25)
-- `type`: `TV`, `OVA`, `Movie`, `Special`, `ONA`, `Music`
-- `score`, `min_score`, `max_score`: filter by score criteria
-- `status`: `airing`, `complete`, `upcoming`
-- `rating`: `g`, `pg`, `pg13`, `r17`, `r`, `rx`
-- `sfw`: `true` to filter out adult entries
-- `genres`, `genres_exclude`: comma-separated genre IDs (e.g. `1,2,3`)
-- `order_by`: `mal_id`, `title`, `start_date`, `end_date`, `episodes`, `score`, `scored_by`, `rank`, `popularity`, `members`
-- `sort`: `desc`, `asc`
-- `letter`: first letter of title
-- `producers`: comma-separated producer IDs
-- `start_date`, `end_date`: date string `YYYY-MM-DD`
-- `hover=1`: Opt-in Extended Metadata. Resolves hidden MAL data fields concurrently.
-
-#### Manga Search (`/v4/manga`)
-
-- `q`: search query string
-- `page`: page number
-- `limit`: results limit (default: 25)
-- `type`: `manga`, `novel`, `lightnovel`, `oneshot`, `doujin`, `manhwa`, `manhua`
-- `score`, `min_score`, `max_score`: filter by score criteria
-- `status`: `publishing`, `complete`, `hiatus`, `discontinued`, `upcoming`
-- `sfw`: `true` to filter out adult entries
-- `genres`, `genres_exclude`: comma-separated genre IDs
-- `order_by`: `mal_id`, `title`, `start_date`, `end_date`, `chapters`, `volumes`, `score`, `scored_by`, `rank`, `popularity`
-- `sort`: `desc`, `asc`
-- `letter`: first letter of title
-- `magazines`: comma-separated magazine IDs
-- `start_date`, `end_date`: date string `YYYY-MM-DD`
-- `hover=1`: Opt-in Extended Metadata popup fetcher.
-
-#### User Search (`/v4/users`)
-
-- `q`: search query string (required)
-- `page`: page number
-- `limit`: results limit (default: 25)
-- `gender`: `any`, `male`, `female`, `nonbinary` (performs profile check)
-- `location`: filter by location
-- `minAge`, `maxAge`: filter by user age
-
-#### Seasons (`/v4/seasons/now`, `/v4/seasons/upcoming`, `/v4/seasons/:year/:season`)
-
-- `page`: page number (pagination)
-- `limit`: results limit (default: 25)
-- `filter`: entry type (`tv`, `movie`, `ova`, `special`, `ona`, `music`)
-- `sfw`: Safe For Work toggle (`?sfw=1` or `?sfw=true`) to filter out Rx/Hentai content
-- `hover=1`: Opt-in Extended Metadata.
-
-> [!WARNING]
-> **Use `?hover=1` sparingly.** It triggers concurrent background requests for all search results, increasing response times. Note that `?hover` is usually only applicable under the HTML scraper path (when no MAL API Client ID is provided).
-
-### Anime
-
-- `/v4/anime?q=query` - Search anime
-- `/v4/anime/:id` - Basic anime details
-- `/v4/anime/:id/full` - Full anime metadata (includes relations, themes, etc.)
-- `/v4/anime/:id/characters` - Character list
-- `/v4/anime/:id/staff` - Staff list
-- `/v4/anime/:id/episodes` - Episode list (pagination via `?page=n`)
-- `/v4/anime/:id/episodes/:episodeId` - Single episode details
-- `/v4/anime/:id/news` - Related news
-- `/v4/anime/:id/forum` - Forum topics
-- `/v4/anime/:id/videos` - Promotional videos and episode links
-- `/v4/anime/:id/pictures` - Image gallery
-- `/v4/anime/:id/statistics` - Detailed score and status stats
-- `/v4/anime/:id/moreinfo` - Additional information text
-- `/v4/anime/:id/recommendations` - User recommendations
-- `/v4/anime/:id/userupdates` - Latest user list updates
-- `/v4/anime/:id/reviews` - User reviews
-- `/v4/anime/:id/relations` - Related anime/manga entries
-- `/v4/anime/:id/themes` - Opening and ending themes
-- `/v4/anime/:id/external` - External links
-- `/v4/anime/:id/streaming` - Official streaming platforms
-
-### Manga
-
-- `/v4/manga?q=query` - Search manga
-- `/v4/manga/:id` - Basic manga details
-- `/v4/manga/:id/full` - Full manga metadata
-- `/v4/manga/:id/characters` - Character list
-- `/v4/manga/:id/news` - Related news
-- `/v4/manga/:id/forum` - Forum topics
-- `/v4/manga/:id/pictures` - Image gallery
-- `/v4/manga/:id/statistics` - Detailed statistics
-- `/v4/manga/:id/moreinfo` - Additional information
-- `/v4/manga/:id/recommendations` - User recommendations
-- `/v4/manga/:id/userupdates` - Latest user list updates
-- `/v4/manga/:id/reviews` - User reviews
-- `/v4/manga/:id/relations` - Related entries
-- `/v4/manga/:id/external` - External links
-
-### Seasons
-
-- `/v4/seasons` - List of all archived seasons
-- `/v4/seasons/now` - Current season anime
-- `/v4/seasons/upcoming` - Upcoming season anime (Season Later)
-- `/v4/seasons/:year/:season` - Specific seasonal anime archive
-
-### Users
-
-- `/v4/users?q=query` - Search users
-- `/v4/users/recentlyonline` - List recently online users
-- `/v4/users/userbyid/:id` - Get username by MAL ID
-- `/v4/users/:username` - Basic profile info
-- `/v4/users/:username/full` - Complete profile (stats, favorites, updates, etc.)
-- `/v4/users/:username/statistics` - Anime and Manga list statistics
-- `/v4/users/:username/favorites` - Favorite anime, manga, characters, and people
-- `/v4/users/:username/userupdates` - User's latest list updates
-- `/v4/users/:username/about` - Raw "About" section HTML
-- `/v4/users/:username/history` - User's activity history (`?type=anime|manga`)
-- `/v4/users/:username/friends` - Friends list
-- `/v4/users/:username/animelist` - Direct JSON anime list from MAL
-- `/v4/users/:username/mangalist` - Direct JSON manga list from MAL
-- `/v4/users/:username/recommendations` - User-submitted recommendations
-- `/v4/users/:username/reviews` - User reviews
-- `/v4/users/:username/clubs` - Joined clubs with pagination
-- `/v4/users/:username/external` - User's linked SNS accounts
-
-## Development
-
-### Prerequisites
-
-- Node.js (Latest LTS)
-- npm or pnpm
-
-### Getting Started
-
-1. Clone the repo
 2. Install dependencies:
    ```bash
    npm install
    ```
-3. Run the development server:
+3. Authenticate with Wrangler:
+   ```bash
+   npx wrangler login
+   ```
+4. Deploy to Cloudflare:
+   ```bash
+   npm run deploy
+   ```
+
+### Vercel
+
+Deploy instantly by linking your GitHub repository to Vercel, or click the **Deploy with Vercel** button above.
+
+### Official MAL API Integration (Optional)
+
+You can configure miribyou to use the official MyAnimeList v2 API to speed up search requests and retrieve richer metadata.
+
+- **Global Config:** Set `MAL_CLIENT_ID` as a secret or environment variable on your hosting platform.
+- **Client Override:** Clients can dynamically specify a Client ID by passing the `X-MAL-CLIENT-ID` header.
+
+To get your Client ID, log in to MyAnimeList, visit the [API Config page](https://myanimelist.net/apiconfig), and create a new **web** client. If a redirect URL is required, you can use `http://localhost:8787`.
+
+---
+
+## ⚡ API Endpoints
+
+All endpoints are `GET` requests.
+
+### Base
+
+- `GET /v4/` - API metadata and heartbeat check
+
+### Anime
+
+- `GET /v4/anime?q=query` - Search anime
+- `GET /v4/anime/:id` - Basic anime details
+- `GET /v4/anime/:id/full` - Full anime metadata (relations, themes, etc.)
+- `GET /v4/anime/:id/characters` - Characters list
+- `GET /v4/anime/:id/staff` - Production staff list
+- `GET /v4/anime/:id/episodes` - Episode list (supports pagination via `?page=n`)
+- `GET /v4/anime/:id/episodes/:episodeId` - Single episode details
+- `GET /v4/anime/:id/news` - News articles
+- `GET /v4/anime/:id/forum` - Forum discussion topics
+- `GET /v4/anime/:id/videos` - Promotional videos and episode streaming links
+- `GET /v4/anime/:id/pictures` - Image gallery
+- `GET /v4/anime/:id/statistics` - Score distribution and watch status statistics
+- `GET /v4/anime/:id/moreinfo` - Additional information text
+- `GET /v4/anime/:id/recommendations` - User recommendations
+- `GET /v4/anime/:id/userupdates` - Latest user list updates
+- `GET /v4/anime/:id/reviews` - User reviews
+- `GET /v4/anime/:id/relations` - Related anime/manga entries
+- `GET /v4/anime/:id/themes` - Opening and ending themes
+- `GET /v4/anime/:id/external` - External resources links
+- `GET /v4/anime/:id/streaming` - Streaming platforms links
+
+### Manga
+
+- `GET /v4/manga?q=query` - Search manga
+- `GET /v4/manga/:id` - Basic manga details
+- `GET /v4/manga/:id/full` - Full manga metadata
+- `GET /v4/manga/:id/characters` - Character list
+- `GET /v4/manga/:id/news` - News articles
+- `GET /v4/manga/:id/forum` - Forum topics
+- `GET /v4/manga/:id/pictures` - Image gallery
+- `GET /v4/manga/:id/statistics` - Reading stats and scores
+- `GET /v4/manga/:id/moreinfo` - Additional information text
+- `GET /v4/manga/:id/recommendations` - User recommendations
+- `GET /v4/manga/:id/userupdates` - Latest list updates
+- `GET /v4/manga/:id/reviews` - User reviews
+- `GET /v4/manga/:id/relations` - Related entries
+- `GET /v4/manga/:id/external` - External links
+
+### Seasons
+
+- `GET /v4/seasons` - List of all archived years and seasons
+- `GET /v4/seasons/now` - Current season anime list
+- `GET /v4/seasons/upcoming` - Upcoming season anime list
+- `GET /v4/seasons/:year/:season` - Specific seasonal anime archive list
+
+### Users
+
+- `GET /v4/users?q=query` - Search users
+- `GET /v4/users/recentlyonline` - List recently online users
+- `GET /v4/users/userbyid/:id` - Get username by MAL ID
+- `GET /v4/users/:username` - Basic profile info
+- `GET /v4/users/:username/full` - Full profile metadata
+- `GET /v4/users/:username/statistics` - Anime and Manga list stats
+- `GET /v4/users/:username/favorites` - Favorite anime, manga, characters, and people
+- `GET /v4/users/:username/userupdates` - Latest updates
+- `GET /v4/users/:username/about` - About section (raw HTML)
+- `GET /v4/users/:username/history` - Activity history (supports `?type=anime|manga`)
+- `GET /v4/users/:username/friends` - Friends list
+- `GET /v4/users/:username/animelist` - Direct anime list
+- `GET /v4/users/:username/mangalist` - Direct manga list
+- `GET /v4/users/:username/recommendations` - User-submitted recommendations
+- `GET /v4/users/:username/reviews` - User reviews
+- `GET /v4/users/:username/clubs` - Joined clubs list
+- `GET /v4/users/:username/external` - Linked external social accounts
+
+---
+
+## ⚙️ Query Parameter Reference
+
+### Anime Search (`/v4/anime`)
+
+| Parameter                         | Type / Format                                   | Description                                                       |
+| :-------------------------------- | :---------------------------------------------- | :---------------------------------------------------------------- |
+| `q`                               | `string`                                        | Search query string                                               |
+| `page`                            | `integer`                                       | Page number for pagination                                        |
+| `limit`                           | `integer`                                       | Results limit (default: `25`)                                     |
+| `type`                            | `TV`, `OVA`, `Movie`, `Special`, `ONA`, `Music` | Media type filter                                                 |
+| `score`, `min_score`, `max_score` | `number`                                        | Score criteria filter                                             |
+| `status`                          | `airing`, `complete`, `upcoming`                | Airing status filter                                              |
+| `rating`                          | `g`, `pg`, `pg13`, `r17`, `r`, `rx`             | Age rating filter                                                 |
+| `sfw`                             | `boolean`                                       | Set `true` to filter out NSFW/adult entries                       |
+| `genres`, `genres_exclude`        | `string`                                        | Comma-separated genre IDs (e.g. `1,2`)                            |
+| `order_by`                        | `string`                                        | Field to sort by (`mal_id`, `title`, `start_date`, `score`, etc.) |
+| `sort`                            | `desc`, `asc`                                   | Sort direction                                                    |
+| `letter`                          | `string`                                        | Filter by first letter of title                                   |
+| `producers`                       | `string`                                        | Comma-separated producer IDs                                      |
+| `start_date`, `end_date`          | `YYYY-MM-DD`                                    | Release date range boundaries                                     |
+| `hover=1`                         | `flag`                                          | Opt-in Extended Metadata (slower; fetches popup fields)           |
+
+### Manga Search (`/v4/manga`)
+
+| Parameter                         | Type / Format                                                           | Description                                                     |
+| :-------------------------------- | :---------------------------------------------------------------------- | :-------------------------------------------------------------- |
+| `q`                               | `string`                                                                | Search query string                                             |
+| `page`                            | `integer`                                                               | Page number for pagination                                      |
+| `limit`                           | `integer`                                                               | Results limit (default: `25`)                                   |
+| `type`                            | `manga`, `novel`, `lightnovel`, `oneshot`, `doujin`, `manhwa`, `manhua` | Media type filter                                               |
+| `score`, `min_score`, `max_score` | `number`                                                                | Score criteria filter                                           |
+| `status`                          | `publishing`, `complete`, `hiatus`, `discontinued`, `upcoming`          | Publication status filter                                       |
+| `sfw`                             | `boolean`                                                               | Set `true` to filter out NSFW/adult entries                     |
+| `genres`, `genres_exclude`        | `string`                                                                | Comma-separated genre IDs                                       |
+| `order_by`                        | `string`                                                                | Field to sort by (`mal_id`, `title`, `chapters`, `score`, etc.) |
+| `sort`                            | `desc`, `asc`                                                           | Sort direction                                                  |
+| `letter`                          | `string`                                                                | Filter by first letter of title                                 |
+| `magazines`                       | `string`                                                                | Comma-separated magazine IDs                                    |
+| `start_date`, `end_date`          | `YYYY-MM-DD`                                                            | Publication date range boundaries                               |
+| `hover=1`                         | `flag`                                                                  | Opt-in Extended Metadata                                        |
+
+### User Search (`/v4/users`)
+
+| Parameter          | Type / Format                        | Description                    |
+| :----------------- | :----------------------------------- | :----------------------------- |
+| `q`                | `string`                             | Search query string (Required) |
+| `page`             | `integer`                            | Page number for pagination     |
+| `limit`            | `integer`                            | Results limit (default: `25`)  |
+| `gender`           | `any`, `male`, `female`, `nonbinary` | Filters by user profile gender |
+| `location`         | `string`                             | Filters by location string     |
+| `minAge`, `maxAge` | `integer`                            | Age range filter               |
+
+### Seasons (`/v4/seasons/now`, `/v4/seasons/upcoming`, `/v4/seasons/:year/:season`)
+
+| Parameter | Type / Format                                   | Description                                                         |
+| :-------- | :---------------------------------------------- | :------------------------------------------------------------------ |
+| `page`    | `integer`                                       | Page number for pagination                                          |
+| `limit`   | `integer`                                       | Results limit (default: `25`)                                       |
+| `filter`  | `tv`, `movie`, `ova`, `special`, `ona`, `music` | Media type filter                                                   |
+| `sfw`     | `boolean`                                       | Safe For Work toggle (`?sfw=1` or `?sfw=true`) to exclude Rx/Hentai |
+| `hover=1` | `flag`                                          | Opt-in Extended Metadata                                            |
+
+> [!WARNING]
+> **Use `?hover=1` sparingly.** It fires concurrent background requests for each entry on the page, increasing response times. Note that `?hover` is only supported on the HTML scraper fallback path.
+
+---
+
+## 🛠️ Development
+
+### Getting Started
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the local hot-reloading server:
    ```bash
    npm run dev
    ```
 
 ### Testing
 
-Tests are handled by Vitest:
+Run the Vitest test suite to verify code changes:
 
 ```bash
 npm test
 ```
 
-## Licensing
+---
 
-Licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+## 📄 Licensing
+
+Licensed under the MIT License. See [LICENSE](LICENSE) for more details.
