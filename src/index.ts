@@ -766,10 +766,15 @@ app.get("/anime/:id/userupdates", async (c) => {
 
 app.get("/anime/:id/reviews", async (c) => {
   const id = c.req.param("id");
+  const page = c.req.query("page") || "1";
+  const preliminary = c.req.query("preliminary") !== "false";
+  const spoilers = c.req.query("spoilers") !== "false";
   try {
-    const html = await fetchMAL(`/anime/${id}/_/reviews`);
-    const data = parseReviews(html, "anime");
-    return c.json({ data });
+    const html = await fetchMAL(
+      `/anime/${id}/_/reviews?p=${page}&spoiler=${spoilers ? "on" : "off"}&preliminary=${preliminary ? "on" : "off"}`,
+    );
+    const { pagination, data } = parseReviews(html, "anime");
+    return c.json({ pagination, data });
   } catch (error: any) {
     const status = error.message.includes("404") ? 404 : 500;
     return c.json(jikanError(status, error.message), status);
@@ -1363,10 +1368,15 @@ app.get("/manga/:id/userupdates", async (c) => {
 
 app.get("/manga/:id/reviews", async (c) => {
   const id = c.req.param("id");
+  const page = c.req.query("page") || "1";
+  const preliminary = c.req.query("preliminary") !== "false";
+  const spoilers = c.req.query("spoilers") !== "false";
   try {
-    const html = await fetchMAL(`/manga/${id}/_/reviews`);
-    const data = parseReviews(html, "manga");
-    return c.json({ data });
+    const html = await fetchMAL(
+      `/manga/${id}/_/reviews?p=${page}&spoiler=${spoilers ? "on" : "off"}&preliminary=${preliminary ? "on" : "off"}`,
+    );
+    const { pagination, data } = parseReviews(html, "manga");
+    return c.json({ pagination, data });
   } catch (error: any) {
     const status = error.message.includes("404") ? 404 : 500;
     return c.json(jikanError(status, error.message), status);

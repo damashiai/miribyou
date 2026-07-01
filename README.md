@@ -150,7 +150,7 @@ All endpoints are `GET` requests.
 - `GET /v4/anime/:id/moreinfo` - Additional information text
 - `GET /v4/anime/:id/recommendations` - User recommendations
 - `GET /v4/anime/:id/userupdates` - Latest user list updates
-- `GET /v4/anime/:id/reviews` - User reviews
+- `GET /v4/anime/:id/reviews` - User reviews (supports pagination via `?page=n`)
 - `GET /v4/anime/:id/relations` - Related anime/manga entries
 - `GET /v4/anime/:id/themes` - Opening and ending themes
 - `GET /v4/anime/:id/external` - External resources links
@@ -169,7 +169,7 @@ All endpoints are `GET` requests.
 - `GET /v4/manga/:id/moreinfo` - Additional information text
 - `GET /v4/manga/:id/recommendations` - User recommendations
 - `GET /v4/manga/:id/userupdates` - Latest list updates
-- `GET /v4/manga/:id/reviews` - User reviews
+- `GET /v4/manga/:id/reviews` - User reviews (supports pagination via `?page=n`)
 - `GET /v4/manga/:id/relations` - Related entries
 - `GET /v4/manga/:id/external` - External links
 
@@ -275,6 +275,14 @@ All endpoints are `GET` requests.
 
 > [!WARNING]
 > **Use `?hover=1` sparingly.** It fires concurrent background requests for each entry on the page, increasing response times. Note that `?hover` is only supported on the HTML scraper fallback path.
+
+### Anime & Manga Reviews (`/v4/anime/:id/reviews`, `/v4/manga/:id/reviews`)
+
+| Parameter     | Type      | Default | Description                                                                 |
+| :------------ | :-------- | :------ | :-------------------------------------------------------------------------- |
+| `page`        | `integer` | `1`     | Page number for pagination                                                  |
+| `preliminary` | `boolean` | `true`  | Include preliminary reviews (reviews left during ongoing airing/publishing) |
+| `spoilers`    | `boolean` | `true`  | Include reviews containing spoilers                                         |
 
 ---
 
