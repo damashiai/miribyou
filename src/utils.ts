@@ -1,17 +1,50 @@
 import { MAL_BASE_URL } from "./constants";
 
+const malFetchCache = new Map<string, Promise<string>>();
+
 export async function fetchMAL(
   path: string,
   headers: Record<string, string> = {},
 ): Promise<string> {
   const url = `https://myanimelist.net${path}`;
-  const response = await fetch(url, {
+
+  const cached = malFetchCache.get(url);
+  if (cached) return cached;
+
+  const promise = doFetchMAL(url, headers);
+  malFetchCache.set(url, promise);
+  promise.then(
+    () => {
+      setTimeout(() => malFetchCache.delete(url), 100);
+    },
+    () => {
+      malFetchCache.delete(url);
+    },
+  );
+
+  return promise;
+}
+
+async function doFetchMAL(
+  url: string,
+  headers: Record<string, string>,
+): Promise<string> {
+  const req = new Request(url, {
     headers: {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 miribyou",
       ...headers,
     },
   });
+
+  if (typeof caches !== "undefined") {
+    const cache = await caches.default.match(req);
+    if (cache && cache.ok) {
+      return cache.text();
+    }
+  }
+
+  const response = await fetch(req);
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -22,7 +55,26 @@ export async function fetchMAL(
     );
   }
 
-  return response.text();
+  const text = await response.text();
+
+  if (typeof caches !== "undefined") {
+    const ctx = new URL(url).pathname;
+    if (!ctx.includes("/hover") && !ctx.includes("/load.json")) {
+      const cacheResp = new Response(text, {
+        headers: {
+          "Cache-Control": "public, max-age=86400, s-maxage=86400",
+          "Content-Type": response.headers.get("Content-Type") || "",
+        },
+      });
+      (async () => {
+        try {
+          await caches.default.put(req, cacheResp);
+        } catch {}
+      })();
+    }
+  }
+
+  return text;
 }
 
 export function parseMalDate(dateStr: string | null) {

@@ -6,7 +6,7 @@ import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils";
 export function parseAnimeCharacters(html: string): AnimeCharacter[] {
   const $ = load(html);
 
-  return $(".anime-character-container table")
+  return $("table.js-anime-character-table")
     .map((_, table) => {
       const $table = $(table);
       const charLink = $table.find("td:nth-child(2) a").first();
