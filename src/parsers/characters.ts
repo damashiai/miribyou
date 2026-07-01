@@ -48,6 +48,7 @@ export function parseAnimeCharacters(html: string): AnimeCharacter[] {
                 jpg: { image_url: vaImageUrl },
                 webp: {
                   image_url: vaImageUrl.replace(".jpg", ".webp"),
+                  small_image_url: vaImageUrl.replace(".jpg", "t.webp"),
                 },
               },
               name: vaName,
@@ -65,6 +66,7 @@ export function parseAnimeCharacters(html: string): AnimeCharacter[] {
             jpg: { image_url: charImageUrl },
             webp: {
               image_url: charImageUrl.replace(".jpg", ".webp"),
+              small_image_url: charImageUrl.replace(".jpg", "t.webp"),
             },
           },
           name: charName,

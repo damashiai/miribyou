@@ -104,8 +104,12 @@ export function parseAnimeEpisode(html: string): any {
     mal_id: episodeId,
     url: $('meta[property="og:url"]').attr("content"),
     title,
+    title_japanese: null,
+    title_romanji: null,
     aired,
     duration,
+    filler: false,
+    recap: false,
     synopsis: synopsis?.startsWith("Looking for episode specific information")
       ? null
       : synopsis,

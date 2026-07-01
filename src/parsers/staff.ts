@@ -28,9 +28,6 @@ export function parseAnimeStaff(html: string): AnimeStaff[] {
           url: ensureMalUrl(personHref),
           images: {
             jpg: { image_url: personImageUrl },
-            webp: {
-              image_url: personImageUrl.replace(".jpg", ".webp"),
-            },
           },
           name: personName,
         },

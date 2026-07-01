@@ -40,8 +40,16 @@ export function parseRecommendations(html: string): Recommendation[] {
           mal_id,
           url,
           images: {
-            jpg: { image_url: imageUrl },
-            webp: { image_url: imageUrl.replace(".jpg", ".webp") },
+            jpg: {
+              image_url: imageUrl,
+              small_image_url: imageUrl.replace(".jpg", "t.jpg"),
+              large_image_url: imageUrl.replace(".jpg", "l.jpg"),
+            },
+            webp: {
+              image_url: imageUrl.replace(".jpg", ".webp"),
+              small_image_url: imageUrl.replace(".jpg", "t.webp"),
+              large_image_url: imageUrl.replace(".jpg", "l.webp"),
+            },
           },
           title,
         },
@@ -76,8 +84,16 @@ export function parseUserRecommendations(html: string): any[] {
           mal_id: extractMalId(url),
           url,
           images: {
-            jpg: { image_url: imageUrl },
-            webp: { image_url: imageUrl.replace(".jpg", ".webp") },
+            jpg: {
+              image_url: imageUrl,
+              small_image_url: imageUrl.replace(".jpg", "t.jpg"),
+              large_image_url: imageUrl.replace(".jpg", "l.jpg"),
+            },
+            webp: {
+              image_url: imageUrl.replace(".jpg", ".webp"),
+              small_image_url: imageUrl.replace(".jpg", "t.webp"),
+              large_image_url: imageUrl.replace(".jpg", "l.webp"),
+            },
           },
           title,
         });

@@ -62,9 +62,6 @@ export function parseNews(html: string): NewsListItem[] {
         forum_url,
         images: {
           jpg: { image_url: imageUrl || "" },
-          webp: {
-            image_url: imageUrl ? imageUrl.replace(".jpg", ".webp") : "",
-          },
         },
         comments,
         excerpt,

@@ -121,7 +121,17 @@ function parseSearchDate(dateStr?: string) {
   };
 }
 
-function calculateAge(birthdayIso: string | null | undefined): number | undefined {
+function stripListFields(obj: any): any {
+  delete obj.relations;
+  delete obj.theme;
+  delete obj.external;
+  delete obj.streaming;
+  return obj;
+}
+
+function calculateAge(
+  birthdayIso: string | null | undefined,
+): number | undefined {
   if (!birthdayIso) return undefined;
   const birthDate = new Date(birthdayIso);
   if (isNaN(birthDate.getTime())) return undefined;
@@ -228,7 +238,7 @@ app.get("/anime", async (c) => {
         nsfw: "true",
       });
       let results = (apiResponse.data || []).map((item: any) =>
-        parseMalApiAnime(item.node),
+        stripListFields(parseMalApiAnime(item.node)),
       );
 
       // In-Memory filtering
@@ -888,7 +898,7 @@ app.get("/manga", async (c) => {
         nsfw: "true",
       });
       let results = (apiResponse.data || []).map((item: any) =>
-        parseMalApiManga(item.node),
+        stripListFields(parseMalApiManga(item.node)),
       );
 
       // In-Memory filtering
@@ -1443,7 +1453,7 @@ app.get("/seasons/now", async (c) => {
         },
       );
       let results = (apiResponse.data || []).map((item: any) => {
-        const data = parseMalApiAnime(item.node);
+        const data = stripListFields(parseMalApiAnime(item.node));
         const startSeason = item.node.start_season;
         data.continuing = startSeason
           ? startSeason.season !== season || startSeason.year !== year
@@ -1615,7 +1625,7 @@ app.get("/seasons/upcoming", async (c) => {
         },
       );
       let results = (apiResponse.data || []).map((item: any) => {
-        const data = parseMalApiAnime(item.node);
+        const data = stripListFields(parseMalApiAnime(item.node));
         const startSeason = item.node.start_season;
         data.continuing = startSeason
           ? startSeason.season !== next.season || startSeason.year !== next.year
@@ -1787,7 +1797,7 @@ app.get("/seasons/:year/:season", async (c) => {
         },
       );
       let results = (apiResponse.data || []).map((item: any) => {
-        const data = parseMalApiAnime(item.node);
+        const data = stripListFields(parseMalApiAnime(item.node));
         const startSeason = item.node.start_season;
         data.continuing = startSeason
           ? startSeason.season !== season.toLowerCase() ||

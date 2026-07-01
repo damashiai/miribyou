@@ -36,25 +36,30 @@ export function parseAnimeVideos(html: string): AnimeVideos {
   });
 
   const episodes: VideoEpisode[] = [];
-  $(".video-block.episode-video .video-list-outer").each((_, element) => {
-    const $element = $(element);
-    const titleLink = $element.find("a.title");
-    const title = titleLink.text().trim();
-    const url = ensureMalUrl(titleLink.attr("href"));
+  $("a.video-list").each((_, a) => {
+    const $a = $(a);
+    const href = $a.attr("href") || "";
+    if (!href.includes("/episode/")) return;
+    const url = ensureMalUrl(href);
     const mal_id = extractMalId(url);
-    const episode = $element.find("span.title").text().trim();
+    const episodeNum = $a
+      .find("span.title")
+      .contents()
+      .filter((_, el) => el.nodeType === 3)
+      .text()
+      .trim();
+    const episodeTitle = $a.find("span.episode-title").text().trim();
     const imageUrl = cleanImageUrl(
-      $element.find("img").attr("data-src") || $element.find("img").attr("src"),
+      $a.find("img").attr("data-src") || $a.find("img").attr("src") || "",
     );
 
     episodes.push({
       mal_id,
       url,
-      title,
-      episode,
+      title: episodeTitle,
+      episode: episodeNum,
       images: {
         jpg: { image_url: imageUrl },
-        webp: { image_url: imageUrl.replace(".jpg", ".webp") },
       },
     });
   });

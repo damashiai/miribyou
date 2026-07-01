@@ -305,6 +305,7 @@ export function parseMangaCharacters(html: string): any[] {
             jpg: { image_url: charImageUrl },
             webp: {
               image_url: charImageUrl.replace(".jpg", ".webp"),
+              small_image_url: charImageUrl.replace(".jpg", "t.webp"),
             },
           },
           name: charName,
