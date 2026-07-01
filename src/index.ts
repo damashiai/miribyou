@@ -121,7 +121,7 @@ function parseSearchDate(dateStr?: string) {
   };
 }
 
-function calculateAge(birthdayIso?: string): number | undefined {
+function calculateAge(birthdayIso: string | null | undefined): number | undefined {
   if (!birthdayIso) return undefined;
   const birthDate = new Date(birthdayIso);
   if (isNaN(birthDate.getTime())) return undefined;

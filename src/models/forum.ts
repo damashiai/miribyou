@@ -2,7 +2,7 @@ export interface ForumTopic {
   mal_id: number;
   url: string;
   title: string;
-  date: string;
+  date: string | null;
   author_username: string;
   author_url: string;
   comments: number;
@@ -10,6 +10,6 @@ export interface ForumTopic {
     url: string;
     author_username: string;
     author_url: string;
-    date: string;
+    date: string | null;
   };
 }
