@@ -1,6 +1,10 @@
 import { MAL_BASE_URL } from "./constants";
 
-const malFetchCache = new Map<string, Promise<string>>();
+const requestCache = new Map<string, Promise<string>>();
+
+export function clearRequestCache() {
+  requestCache.clear();
+}
 
 export async function fetchMAL(
   path: string,
@@ -8,18 +12,14 @@ export async function fetchMAL(
 ): Promise<string> {
   const url = `https://myanimelist.net${path}`;
 
-  const cached = malFetchCache.get(url);
+  const cached = requestCache.get(url);
   if (cached) return cached;
 
   const promise = doFetchMAL(url, headers);
-  malFetchCache.set(url, promise);
+  requestCache.set(url, promise);
   promise.then(
-    () => {
-      setTimeout(() => malFetchCache.delete(url), 100);
-    },
-    () => {
-      malFetchCache.delete(url);
-    },
+    () => setTimeout(() => requestCache.delete(url), 100),
+    () => requestCache.delete(url),
   );
 
   return promise;
@@ -29,22 +29,25 @@ async function doFetchMAL(
   url: string,
   headers: Record<string, string>,
 ): Promise<string> {
-  const req = new Request(url, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 miribyou",
-      ...headers,
-    },
-  });
+  const userAgent = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 miribyou",
+    ...headers,
+  };
 
-  if (typeof caches !== "undefined") {
-    const cache = await caches.default.match(req);
+  const cacheReq =
+    typeof caches !== "undefined"
+      ? new Request(url, { headers: userAgent })
+      : null;
+
+  if (cacheReq) {
+    const cache = await caches.default.match(cacheReq);
     if (cache && cache.ok) {
       return cache.text();
     }
   }
 
-  const response = await fetch(req);
+  const response = await fetch(url, { headers: userAgent });
 
   if (!response.ok) {
     if (response.status === 404) {
@@ -57,7 +60,7 @@ async function doFetchMAL(
 
   const text = await response.text();
 
-  if (typeof caches !== "undefined") {
+  if (cacheReq) {
     const ctx = new URL(url).pathname;
     if (!ctx.includes("/hover") && !ctx.includes("/load.json")) {
       const cacheResp = new Response(text, {
@@ -68,7 +71,7 @@ async function doFetchMAL(
       });
       (async () => {
         try {
-          await caches.default.put(req, cacheResp);
+          await caches.default.put(cacheReq, cacheResp);
         } catch {}
       })();
     }

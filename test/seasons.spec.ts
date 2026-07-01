@@ -1,7 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { SELF } from "cloudflare:test";
+import { clearRequestCache } from "../src/utils";
 
 describe("Seasons Endpoint", () => {
+  beforeEach(() => {
+    clearRequestCache();
+  });
   it("GET /seasons returns season list", async () => {
     const mockHtml = `
       <table class="anime-seasonal-byseason">
