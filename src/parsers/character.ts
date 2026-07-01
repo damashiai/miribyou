@@ -125,7 +125,7 @@ export function parseCharacterAnime(html: string): CharacterAnimeEntry[] {
               url: ensureMalUrl(href),
               images: {
                 jpg: {
-                  image_url: imgUrl || null,
+                  image_url: imgUrl,
                   small_image_url: imgUrl
                     ? imgUrl.replace(".jpg", "t.jpg")
                     : undefined,
@@ -181,7 +181,7 @@ export function parseCharacterManga(html: string): CharacterMangaEntry[] {
               url: ensureMalUrl(href),
               images: {
                 jpg: {
-                  image_url: imgUrl || null,
+                  image_url: imgUrl,
                   small_image_url: imgUrl
                     ? imgUrl.replace(".jpg", "t.jpg")
                     : undefined,
@@ -241,7 +241,7 @@ export function parseCharacterVoices(html: string): CharacterVoiceEntry[] {
                 mal_id: extractMalId(href),
                 url: ensureMalUrl(href),
                 images: {
-                  jpg: { image_url: imgUrl || null },
+                  jpg: { image_url: imgUrl },
                 },
                 name,
               },
