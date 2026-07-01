@@ -657,10 +657,11 @@ app.get("/anime/:id/episodes/:episodeId", async (c) => {
 
 app.get("/anime/:id/news", async (c) => {
   const id = c.req.param("id");
+  const page = c.req.query("page") || "1";
   try {
-    const html = await fetchMAL(`/anime/${id}/_/news`);
-    const data = parseNews(html);
-    return c.json({ data });
+    const html = await fetchMAL(`/anime/${id}/_/news?p=${page}`);
+    const { pagination, data } = parseNews(html);
+    return c.json({ pagination, data });
   } catch (error: any) {
     const status = error.message.includes("404") ? 404 : 500;
     return c.json(jikanError(status, error.message), status);
@@ -1277,10 +1278,11 @@ app.get("/manga/:id/characters", async (c) => {
 
 app.get("/manga/:id/news", async (c) => {
   const id = c.req.param("id");
+  const page = c.req.query("page") || "1";
   try {
-    const html = await fetchMAL(`/manga/${id}/_/news`);
-    const data = parseNews(html);
-    return c.json({ data });
+    const html = await fetchMAL(`/manga/${id}/_/news?p=${page}`);
+    const { pagination, data } = parseNews(html);
+    return c.json({ pagination, data });
   } catch (error: any) {
     const status = error.message.includes("404") ? 404 : 500;
     return c.json(jikanError(status, error.message), status);

@@ -142,7 +142,7 @@ All endpoints are `GET` requests.
 - `GET /v4/anime/:id/staff` - Production staff list
 - `GET /v4/anime/:id/episodes` - Episode list (supports pagination via `?page=n`)
 - `GET /v4/anime/:id/episodes/:episodeId` - Single episode details
-- `GET /v4/anime/:id/news` - News articles
+- `GET /v4/anime/:id/news` - News articles (supports pagination via `?page=n`)
 - `GET /v4/anime/:id/forum` - Forum discussion topics
 - `GET /v4/anime/:id/videos` - Promotional videos and episode streaming links
 - `GET /v4/anime/:id/pictures` - Image gallery
@@ -162,7 +162,7 @@ All endpoints are `GET` requests.
 - `GET /v4/manga/:id` - Basic manga details
 - `GET /v4/manga/:id/full` - Full manga metadata
 - `GET /v4/manga/:id/characters` - Character list
-- `GET /v4/manga/:id/news` - News articles
+- `GET /v4/manga/:id/news` - News articles (supports pagination via `?page=n`)
 - `GET /v4/manga/:id/forum` - Forum topics
 - `GET /v4/manga/:id/pictures` - Image gallery
 - `GET /v4/manga/:id/statistics` - Reading stats and scores

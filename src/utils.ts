@@ -383,7 +383,7 @@ export function extractMalId(href: string): number {
 
 export function cleanImageUrl(url: string | undefined): string {
   if (!url) return "";
-  return url.split("?")[0];
+  return url.split("?")[0].replace(/\/r\/\d+x\d+\//, "/");
 }
 
 export function ensureMalUrl(url: string | undefined): string {
