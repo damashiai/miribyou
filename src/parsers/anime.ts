@@ -28,9 +28,12 @@ export function parseAnime(html: string): Anime {
     },
   };
 
+  const darkTextSpans = $(".dark_text");
+  const darkTextLabels = darkTextSpans.map((_, el) => $(el).text()).get();
+
   const getInfo = (label: string) => {
-    const span = $(`.dark_text`).filter((_, el) =>
-      $(el).text().startsWith(label),
+    const span = darkTextSpans.filter((idx) =>
+      darkTextLabels[idx].startsWith(label),
     );
     if (span.length === 0) return null;
     const parent = span.parent();
@@ -46,15 +49,16 @@ export function parseAnime(html: string): Anime {
   const episodes = parseInt(getInfo("Episodes:") || "0") || null;
   const status = getInfo("Status:");
   const aired_string = getInfo("Aired:");
-  const score = parseFloat(getInfo("Score:") || "0") || null;
+
+  const scoreText = getInfo("Score:");
+  const score = parseFloat(scoreText || "0") || null;
 
   let scored_by: number | null = null;
   const scoredBySpan = $('span[itemprop="ratingCount"]');
   if (scoredBySpan.length > 0) {
     scored_by = parseInt(scoredBySpan.text().replace(/[^0-9]/g, ""));
-  } else {
-    const scoreText = getInfo("Score:");
-    const match = scoreText?.match(/\((scored by )?([0-9,]+) users\)/);
+  } else if (scoreText) {
+    const match = scoreText.match(/\((scored by )?([0-9,]+) users\)/);
     if (match) {
       scored_by = parseInt(match[2].replace(/,/g, ""));
     }
@@ -142,11 +146,10 @@ export function parseAnime(html: string): Anime {
     .map((t) => t.title);
 
   const extractMalUrls = (label: string): MalUrl[] => {
-    const span = $(`.dark_text`).filter((_, el) => {
-      const text = $(el).text();
-      return (
-        text.startsWith(label) || text.startsWith(label.replace("s:", ":"))
-      );
+    const altLabel = label.replace("s:", ":");
+    const span = darkTextSpans.filter((idx) => {
+      const text = darkTextLabels[idx];
+      return text.startsWith(label) || text.startsWith(altLabel);
     });
     if (span.length === 0) return [];
     return span
@@ -309,46 +312,50 @@ export function parseAnime(html: string): Anime {
   const parseThemes = (typeSelector: string) => {
     const themes: string[] = [];
     const container = $(`.theme-songs${typeSelector}`);
-    if (container.length > 0) {
-      container
-        .find("table:not(.oped-popup-table)")
-        .find("tr")
-        .each((_, el) => {
-          const tds = $(el).find("td");
-          let targetTd;
-          if (tds.length >= 2) {
-            targetTd = tds
-              .filter(
-                (_, td) =>
-                  $(td).attr("width") === "84%" ||
-                  $(td).find(".theme-song-index, .theme-song-title").length > 0,
-              )
-              .first();
-            if (targetTd.length === 0)
-              targetTd = tds.eq(Math.floor(tds.length / 2));
-          } else {
-            targetTd = tds.first();
-          }
-
-          if (!targetTd || targetTd.length === 0) return;
-
-          const clone = targetTd.clone();
-          clone
-            .find(
-              "input, .js-theme-song-play, svg, audio, div.oped-preview-button, .oped-video-button, .oped-popup",
-            )
-            .remove();
-          const text = clone.text().trim().replace(/\s+/g, " ");
+    if (container.length === 0) return themes;
+    container.find("table:not(.oped-popup-table) tr").each((_, el) => {
+      const tds = $(el).children("td");
+      let targetTd;
+      if (tds.length >= 2) {
+        for (let i = 0; i < tds.length; i++) {
+          const td = tds[i];
           if (
-            text &&
-            !text.includes("Help improve our database") &&
-            !text.includes("No opening themes") &&
-            !text.includes("No ending themes")
+            td.attribs?.width === "84%" ||
+            $(td).find(".theme-song-index, .theme-song-title").length > 0
           ) {
-            themes.push(text);
+            targetTd = tds.eq(i);
+            break;
           }
-        });
-    }
+        }
+        if (!targetTd || targetTd.length === 0)
+          targetTd = tds.eq(Math.floor(tds.length / 2));
+      } else {
+        targetTd = tds.first();
+      }
+
+      if (!targetTd || targetTd.length === 0) return;
+
+      let text = "";
+      targetTd.contents().each((_, node) => {
+        if (
+          node.type === "text" ||
+          !$(node).is(
+            "input, .js-theme-song-play, svg, audio, div.oped-preview-button, .oped-video-button, .oped-popup",
+          )
+        ) {
+          text += $(node).text();
+        }
+      });
+      text = text.trim().replace(/\s+/g, " ");
+      if (
+        text &&
+        !text.includes("Help improve our database") &&
+        !text.includes("No opening themes") &&
+        !text.includes("No ending themes")
+      ) {
+        themes.push(text);
+      }
+    });
     return themes;
   };
 

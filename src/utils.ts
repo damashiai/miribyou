@@ -1,9 +1,46 @@
 import { MAL_BASE_URL } from "./constants";
 
 const requestCache = new Map<string, Promise<string>>();
+const CACHE_MAX_SIZE = 100;
+
+function trimRequestCache() {
+  if (requestCache.size > CACHE_MAX_SIZE) {
+    const keys = [...requestCache.keys()];
+    for (let i = 0; i < keys.length - CACHE_MAX_SIZE; i++) {
+      requestCache.delete(keys[i]);
+    }
+  }
+}
 
 export function clearRequestCache() {
   requestCache.clear();
+}
+
+export async function mapConcurrent<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency = 5,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let index = 0;
+
+  const worker = async () => {
+    while (index < items.length) {
+      const i = index++;
+      try {
+        results[i] = await fn(items[i]);
+      } catch {
+        results[i] = undefined as unknown as R;
+      }
+    }
+  };
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+  return results.filter((r) => r !== undefined);
 }
 
 export async function fetchMAL(
@@ -15,6 +52,7 @@ export async function fetchMAL(
   const cached = requestCache.get(url);
   if (cached) return cached;
 
+  trimRequestCache();
   const promise = doFetchMAL(url, headers);
   requestCache.set(url, promise);
   promise.then(
@@ -43,7 +81,8 @@ async function doFetchMAL(
   if (cacheReq) {
     const cache = await caches.default.match(cacheReq);
     if (cache && cache.ok) {
-      return cache.text();
+      const text = await cache.text();
+      if (text.length > 0) return text;
     }
   }
 
@@ -60,7 +99,7 @@ async function doFetchMAL(
 
   const text = await response.text();
 
-  if (cacheReq) {
+  if (cacheReq && text.length > 0) {
     const ctx = new URL(url).pathname;
     if (!ctx.includes("/hover") && !ctx.includes("/load.json")) {
       const cacheResp = new Response(text, {

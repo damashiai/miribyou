@@ -1,7 +1,12 @@
 import { Hono } from "hono";
 import { trimTrailingSlash } from "hono/trailing-slash";
 
-import { fetchMAL, jikanError, resolveSearchDate } from "./utils";
+import {
+  fetchMAL,
+  jikanError,
+  resolveSearchDate,
+  mapConcurrent,
+} from "./utils";
 import pkg from "../package.json";
 import {
   fetchFromMalApi,
@@ -415,38 +420,36 @@ app.get("/anime", async (c) => {
     const data = parseAnimeSearch(html);
 
     if (hover && data.data.length > 0) {
-      await Promise.all(
-        data.data.map(async (item: any) => {
-          try {
-            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest",
-            });
-            const hoverData = parseHover(hoverHtml);
+      await mapConcurrent(
+        data.data,
+        async (item: any) => {
+          const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+            "X-Requested-With": "XMLHttpRequest",
+          });
+          const hoverData = parseHover(hoverHtml);
 
-            if (hoverData.year) {
-              item.year = hoverData.year;
-              if (item._raw_aired) {
-                item.aired = resolveSearchDate(item._raw_aired, hoverData.year);
-              }
+          if (hoverData.year) {
+            item.year = hoverData.year;
+            if (item._raw_aired) {
+              item.aired = resolveSearchDate(item._raw_aired, hoverData.year);
             }
-            if (hoverData.synopsis && item.synopsis.endsWith("..."))
-              item.synopsis = hoverData.synopsis;
-            if (hoverData.genres.length) item.genres = hoverData.genres;
-            if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length)
-              item.demographics = hoverData.demographics;
-            if (hoverData.status) item.status = hoverData.status;
-            if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null)
-              item.scored_by = hoverData.scored_by;
-            if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null)
-              item.popularity = hoverData.popularity;
-            if (hoverData.members !== null) item.members = hoverData.members;
-          } catch (e) {
-            // Silently fail for individual hover requests
           }
-        }),
+          if (hoverData.synopsis && item.synopsis.endsWith("..."))
+            item.synopsis = hoverData.synopsis;
+          if (hoverData.genres.length) item.genres = hoverData.genres;
+          if (hoverData.themes.length) item.themes = hoverData.themes;
+          if (hoverData.demographics.length)
+            item.demographics = hoverData.demographics;
+          if (hoverData.status) item.status = hoverData.status;
+          if (hoverData.score !== null) item.score = hoverData.score;
+          if (hoverData.scored_by !== null)
+            item.scored_by = hoverData.scored_by;
+          if (hoverData.rank !== null) item.rank = hoverData.rank;
+          if (hoverData.popularity !== null)
+            item.popularity = hoverData.popularity;
+          if (hoverData.members !== null) item.members = hoverData.members;
+        },
+        5,
       );
     }
 
@@ -1075,41 +1078,39 @@ app.get("/manga", async (c) => {
     const data = parseMangaSearch(html);
 
     if (hover && data.data.length > 0) {
-      await Promise.all(
-        data.data.map(async (item: any) => {
-          try {
-            const hoverHtml = await fetchMAL(`/manga/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest",
-            });
-            const hoverData = parseHover(hoverHtml);
+      await mapConcurrent(
+        data.data,
+        async (item: any) => {
+          const hoverHtml = await fetchMAL(`/manga/${item.mal_id}/hover`, {
+            "X-Requested-With": "XMLHttpRequest",
+          });
+          const hoverData = parseHover(hoverHtml);
 
-            if (hoverData.year) {
-              item.year = hoverData.year;
-              if (item._raw_published) {
-                item.published = resolveSearchDate(
-                  item._raw_published,
-                  hoverData.year,
-                );
-              }
+          if (hoverData.year) {
+            item.year = hoverData.year;
+            if (item._raw_published) {
+              item.published = resolveSearchDate(
+                item._raw_published,
+                hoverData.year,
+              );
             }
-            if (hoverData.synopsis && item.synopsis.endsWith("..."))
-              item.synopsis = hoverData.synopsis;
-            if (hoverData.genres.length) item.genres = hoverData.genres;
-            if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length)
-              item.demographics = hoverData.demographics;
-            if (hoverData.status) item.status = hoverData.status;
-            if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null)
-              item.scored_by = hoverData.scored_by;
-            if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null)
-              item.popularity = hoverData.popularity;
-            if (hoverData.members !== null) item.members = hoverData.members;
-          } catch (e) {
-            // Silently fail for individual hover requests
           }
-        }),
+          if (hoverData.synopsis && item.synopsis.endsWith("..."))
+            item.synopsis = hoverData.synopsis;
+          if (hoverData.genres.length) item.genres = hoverData.genres;
+          if (hoverData.themes.length) item.themes = hoverData.themes;
+          if (hoverData.demographics.length)
+            item.demographics = hoverData.demographics;
+          if (hoverData.status) item.status = hoverData.status;
+          if (hoverData.score !== null) item.score = hoverData.score;
+          if (hoverData.scored_by !== null)
+            item.scored_by = hoverData.scored_by;
+          if (hoverData.rank !== null) item.rank = hoverData.rank;
+          if (hoverData.popularity !== null)
+            item.popularity = hoverData.popularity;
+          if (hoverData.members !== null) item.members = hoverData.members;
+        },
+        5,
       );
     }
 
@@ -1626,29 +1627,29 @@ app.get("/seasons/now", async (c) => {
     if (hover && results.length > 0) {
       const startIndex = (page - 1) * limit;
       const toEnrich = results.slice(startIndex, startIndex + limit);
-      await Promise.all(
-        toEnrich.map(async (item: any) => {
-          try {
-            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest",
-            });
-            const hoverData = parseHover(hoverHtml);
-            if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null)
-              item.scored_by = hoverData.scored_by;
-            if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null)
-              item.popularity = hoverData.popularity;
-            if (hoverData.members !== null) item.members = hoverData.members;
-            if (hoverData.status) item.status = hoverData.status;
-            if (hoverData.synopsis && item.synopsis.endsWith("..."))
-              item.synopsis = hoverData.synopsis;
-            if (hoverData.genres.length) item.genres = hoverData.genres;
-            if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length)
-              item.demographics = hoverData.demographics;
-          } catch (e) {}
-        }),
+      await mapConcurrent(
+        toEnrich,
+        async (item: any) => {
+          const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+            "X-Requested-With": "XMLHttpRequest",
+          });
+          const hoverData = parseHover(hoverHtml);
+          if (hoverData.score !== null) item.score = hoverData.score;
+          if (hoverData.scored_by !== null)
+            item.scored_by = hoverData.scored_by;
+          if (hoverData.rank !== null) item.rank = hoverData.rank;
+          if (hoverData.popularity !== null)
+            item.popularity = hoverData.popularity;
+          if (hoverData.members !== null) item.members = hoverData.members;
+          if (hoverData.status) item.status = hoverData.status;
+          if (hoverData.synopsis && item.synopsis.endsWith("..."))
+            item.synopsis = hoverData.synopsis;
+          if (hoverData.genres.length) item.genres = hoverData.genres;
+          if (hoverData.themes.length) item.themes = hoverData.themes;
+          if (hoverData.demographics.length)
+            item.demographics = hoverData.demographics;
+        },
+        5,
       );
     }
 
@@ -1799,29 +1800,29 @@ app.get("/seasons/upcoming", async (c) => {
     if (hover && results.length > 0) {
       const startIndex = (page - 1) * limit;
       const toEnrich = results.slice(startIndex, startIndex + limit);
-      await Promise.all(
-        toEnrich.map(async (item: any) => {
-          try {
-            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest",
-            });
-            const hoverData = parseHover(hoverHtml);
-            if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null)
-              item.scored_by = hoverData.scored_by;
-            if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null)
-              item.popularity = hoverData.popularity;
-            if (hoverData.members !== null) item.members = hoverData.members;
-            if (hoverData.status) item.status = hoverData.status;
-            if (hoverData.synopsis && item.synopsis.endsWith("..."))
-              item.synopsis = hoverData.synopsis;
-            if (hoverData.genres.length) item.genres = hoverData.genres;
-            if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length)
-              item.demographics = hoverData.demographics;
-          } catch (e) {}
-        }),
+      await mapConcurrent(
+        toEnrich,
+        async (item: any) => {
+          const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+            "X-Requested-With": "XMLHttpRequest",
+          });
+          const hoverData = parseHover(hoverHtml);
+          if (hoverData.score !== null) item.score = hoverData.score;
+          if (hoverData.scored_by !== null)
+            item.scored_by = hoverData.scored_by;
+          if (hoverData.rank !== null) item.rank = hoverData.rank;
+          if (hoverData.popularity !== null)
+            item.popularity = hoverData.popularity;
+          if (hoverData.members !== null) item.members = hoverData.members;
+          if (hoverData.status) item.status = hoverData.status;
+          if (hoverData.synopsis && item.synopsis.endsWith("..."))
+            item.synopsis = hoverData.synopsis;
+          if (hoverData.genres.length) item.genres = hoverData.genres;
+          if (hoverData.themes.length) item.themes = hoverData.themes;
+          if (hoverData.demographics.length)
+            item.demographics = hoverData.demographics;
+        },
+        5,
       );
     }
 
@@ -1972,29 +1973,29 @@ app.get("/seasons/:year/:season", async (c) => {
     if (hover && results.length > 0) {
       const startIndex = (page - 1) * limit;
       const toEnrich = results.slice(startIndex, startIndex + limit);
-      await Promise.all(
-        toEnrich.map(async (item: any) => {
-          try {
-            const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
-              "X-Requested-With": "XMLHttpRequest",
-            });
-            const hoverData = parseHover(hoverHtml);
-            if (hoverData.score !== null) item.score = hoverData.score;
-            if (hoverData.scored_by !== null)
-              item.scored_by = hoverData.scored_by;
-            if (hoverData.rank !== null) item.rank = hoverData.rank;
-            if (hoverData.popularity !== null)
-              item.popularity = hoverData.popularity;
-            if (hoverData.members !== null) item.members = hoverData.members;
-            if (hoverData.status) item.status = hoverData.status;
-            if (hoverData.synopsis && item.synopsis.endsWith("..."))
-              item.synopsis = hoverData.synopsis;
-            if (hoverData.genres.length) item.genres = hoverData.genres;
-            if (hoverData.themes.length) item.themes = hoverData.themes;
-            if (hoverData.demographics.length)
-              item.demographics = hoverData.demographics;
-          } catch (e) {}
-        }),
+      await mapConcurrent(
+        toEnrich,
+        async (item: any) => {
+          const hoverHtml = await fetchMAL(`/anime/${item.mal_id}/hover`, {
+            "X-Requested-With": "XMLHttpRequest",
+          });
+          const hoverData = parseHover(hoverHtml);
+          if (hoverData.score !== null) item.score = hoverData.score;
+          if (hoverData.scored_by !== null)
+            item.scored_by = hoverData.scored_by;
+          if (hoverData.rank !== null) item.rank = hoverData.rank;
+          if (hoverData.popularity !== null)
+            item.popularity = hoverData.popularity;
+          if (hoverData.members !== null) item.members = hoverData.members;
+          if (hoverData.status) item.status = hoverData.status;
+          if (hoverData.synopsis && item.synopsis.endsWith("..."))
+            item.synopsis = hoverData.synopsis;
+          if (hoverData.genres.length) item.genres = hoverData.genres;
+          if (hoverData.themes.length) item.themes = hoverData.themes;
+          if (hoverData.demographics.length)
+            item.demographics = hoverData.demographics;
+        },
+        5,
       );
     }
 

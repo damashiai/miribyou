@@ -67,6 +67,98 @@ export const MANGA_FIELDS = [
   "num_favorites",
 ].join(",");
 
+const GENRE_THEME_NAMES = new Set([
+  "mecha",
+  "school",
+  "military",
+  "historical",
+  "music",
+  "parody",
+  "space",
+  "martial arts",
+  "super power",
+  "vampire",
+  "harem",
+  "psychological",
+  "cyberpunk",
+  "game",
+  "demons",
+  "police",
+  "sports",
+  "slice of life",
+]);
+
+const GENRE_DEMO_NAMES = new Set([
+  "shounen",
+  "seinen",
+  "shoujo",
+  "josei",
+  "kids",
+]);
+
+const GENRE_EXPLICIT_NAMES = new Set(["hentai", "erotica"]);
+
+function classifyGenres(
+  nodeGenres: any[],
+  type: "anime" | "manga",
+): {
+  genres: any[];
+  explicit_genres: any[];
+  themes: any[];
+  demographics: any[];
+} {
+  const genres: any[] = [];
+  const explicit_genres: any[] = [];
+  const themes: any[] = [];
+  const demographics: any[] = [];
+
+  if (!nodeGenres) return { genres, explicit_genres, themes, demographics };
+
+  const isTheme = (name: string) => {
+    for (const t of GENRE_THEME_NAMES) {
+      if (name.includes(t)) return true;
+    }
+    return false;
+  };
+
+  for (const g of nodeGenres) {
+    const nameLower = g.name.toLowerCase();
+    const item = {
+      mal_id: g.id,
+      type,
+      name: g.name,
+      url: `https://myanimelist.net/${type}/genre/${g.id}`,
+    };
+    if (isTheme(nameLower)) {
+      themes.push(item);
+    } else if (GENRE_DEMO_NAMES.has(nameLower)) {
+      demographics.push(item);
+    } else if (GENRE_EXPLICIT_NAMES.has(nameLower)) {
+      explicit_genres.push(item);
+    } else {
+      genres.push(item);
+    }
+  }
+
+  return { genres, explicit_genres, themes, demographics };
+}
+
+function buildImages(mainPicture: any) {
+  const image_url = mainPicture?.large || mainPicture?.medium || "";
+  const medium = mainPicture?.medium || image_url;
+  const large = mainPicture?.large || image_url;
+  const toWebp = (url: string) =>
+    url.endsWith(".jpg") ? url.replace(".jpg", ".webp") : url;
+  return {
+    jpg: { image_url, small_image_url: medium, large_image_url: large },
+    webp: {
+      image_url: toWebp(image_url),
+      small_image_url: toWebp(medium),
+      large_image_url: toWebp(large),
+    },
+  };
+}
+
 export async function fetchFromMalApi(
   endpoint: string,
   malClientId: string,
@@ -88,6 +180,29 @@ export async function fetchFromMalApi(
   }
 
   return response.json();
+}
+
+const MONTH_NAMES_SHORT = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+function formatDate(dateStr: string): string {
+  const parts = dateStr.split("-");
+  const month = parseInt(parts[1]) || 1;
+  const day = parseInt(parts[2]) || 1;
+  const year = parts[0] || "";
+  return `${MONTH_NAMES_SHORT[month - 1] || "Jan"} ${day}, ${year}`;
 }
 
 function parseMalApiDate(
@@ -112,19 +227,9 @@ function parseMalApiDate(
   let dateString = "Unknown";
   if (startDate) {
     try {
-      const fromFormatted = new Date(startDate).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      });
-      dateString = fromFormatted;
+      dateString = formatDate(startDate);
       if (endDate) {
-        const toFormatted = new Date(endDate).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-        dateString += ` to ${toFormatted}`;
+        dateString += ` to ${formatDate(endDate)}`;
       }
     } catch {
       dateString = startDate;
@@ -191,25 +296,7 @@ export function parseMalApiAnime(node: any): Anime {
     }
   }
 
-  const image_url = node.main_picture?.large || node.main_picture?.medium || "";
-  const images = {
-    jpg: {
-      image_url: image_url,
-      small_image_url: node.main_picture?.medium || image_url,
-      large_image_url: node.main_picture?.large || image_url,
-    },
-    webp: {
-      image_url: image_url.replace(/\.jpg$/, ".webp"),
-      small_image_url: (node.main_picture?.medium || image_url).replace(
-        /\.jpg$/,
-        ".webp",
-      ),
-      large_image_url: (node.main_picture?.large || image_url).replace(
-        /\.jpg$/,
-        ".webp",
-      ),
-    },
-  };
+  const images = buildImages(node.main_picture);
 
   const typeMap: Record<string, string> = {
     tv: "TV",
@@ -235,54 +322,10 @@ export function parseMalApiAnime(node: any): Anime {
     rx: "Rx - Hentai",
   };
 
-  const genres: any[] = [];
-  const explicit_genres: any[] = [];
-  const themes: any[] = [];
-  const demographics: any[] = [];
-
-  if (node.genres) {
-    const themeNames = [
-      "mecha",
-      "school",
-      "military",
-      "historical",
-      "music",
-      "parody",
-      "space",
-      "martial arts",
-      "super power",
-      "vampire",
-      "harem",
-      "psychological",
-      "cyberpunk",
-      "game",
-      "demons",
-      "police",
-      "sports",
-      "slice of life",
-    ];
-    const demoNames = ["shounen", "seinen", "shoujo", "josei", "kids"];
-    const explicitNames = ["hentai", "erotica"];
-
-    for (const g of node.genres) {
-      const nameLower = g.name.toLowerCase();
-      const item = {
-        mal_id: g.id,
-        type: "anime",
-        name: g.name,
-        url: `https://myanimelist.net/anime/genre/${g.id}`,
-      };
-      if (themeNames.some((t) => nameLower.includes(t))) {
-        themes.push(item);
-      } else if (demoNames.some((d) => nameLower.includes(d))) {
-        demographics.push(item);
-      } else if (explicitNames.some((e) => nameLower.includes(e))) {
-        explicit_genres.push(item);
-      } else {
-        genres.push(item);
-      }
-    }
-  }
+  const { genres, explicit_genres, themes, demographics } = classifyGenres(
+    node.genres,
+    "anime",
+  );
 
   const durationMin = node.average_episode_duration
     ? Math.floor(node.average_episode_duration / 60)
@@ -380,25 +423,7 @@ export function parseMalApiManga(node: any): Manga {
     }
   }
 
-  const image_url = node.main_picture?.large || node.main_picture?.medium || "";
-  const images = {
-    jpg: {
-      image_url: image_url,
-      small_image_url: node.main_picture?.medium || image_url,
-      large_image_url: node.main_picture?.large || image_url,
-    },
-    webp: {
-      image_url: image_url.replace(/\.jpg$/, ".webp"),
-      small_image_url: (node.main_picture?.medium || image_url).replace(
-        /\.jpg$/,
-        ".webp",
-      ),
-      large_image_url: (node.main_picture?.large || image_url).replace(
-        /\.jpg$/,
-        ".webp",
-      ),
-    },
-  };
+  const images = buildImages(node.main_picture);
 
   const typeMap: Record<string, string> = {
     manga: "Manga",
@@ -416,52 +441,10 @@ export function parseMalApiManga(node: any): Manga {
     not_yet_published: "Not yet published",
   };
 
-  const genres: any[] = [];
-  const explicit_genres: any[] = [];
-  const themes: any[] = [];
-  const demographics: any[] = [];
-
-  if (node.genres) {
-    const themeNames = [
-      "historical",
-      "music",
-      "parody",
-      "space",
-      "martial arts",
-      "super power",
-      "vampire",
-      "harem",
-      "psychological",
-      "cyberpunk",
-      "game",
-      "demons",
-      "police",
-      "sports",
-      "slice of life",
-      "school",
-    ];
-    const demoNames = ["shounen", "seinen", "shoujo", "josei", "kids"];
-    const explicitNames = ["hentai", "erotica"];
-
-    for (const g of node.genres) {
-      const nameLower = g.name.toLowerCase();
-      const item = {
-        mal_id: g.id,
-        type: "manga",
-        name: g.name,
-        url: `https://myanimelist.net/manga/genre/${g.id}`,
-      };
-      if (themeNames.some((t) => nameLower.includes(t))) {
-        themes.push(item);
-      } else if (demoNames.some((d) => nameLower.includes(d))) {
-        demographics.push(item);
-      } else if (explicitNames.some((e) => nameLower.includes(e))) {
-        explicit_genres.push(item);
-      } else {
-        genres.push(item);
-      }
-    }
-  }
+  const { genres, explicit_genres, themes, demographics } = classifyGenres(
+    node.genres,
+    "manga",
+  );
 
   const authors = node.authors
     ? node.authors.map((a: any) => ({
