@@ -4,6 +4,6 @@
  * All actual routes/logic live in ./app — this file only adapts the shared
  * Hono instance to the Workers module-worker export shape.
  */
-import { app, createFetchHandler } from "./app";
+import { app, createFetchHandler } from "./app.js";
 
 export default createFetchHandler(app);

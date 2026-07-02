@@ -1,5 +1,5 @@
-import { Anime, Title, DateRange } from "./models/anime";
-import { Manga } from "./models/manga";
+import { Anime, Title, DateRange } from "./models/anime.js";
+import { Manga } from "./models/manga.js";
 
 export const ANIME_FIELDS = [
   "id",

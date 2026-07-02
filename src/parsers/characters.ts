@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { AnimeCharacter } from "../models/characters";
-import { MAL_BASE_URL } from "../constants";
-import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils";
+import { AnimeCharacter } from "../models/characters.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils.js";
 
 export function parseAnimeCharacters(html: string): AnimeCharacter[] {
   const $ = load(html);

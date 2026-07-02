@@ -7,8 +7,8 @@ import {
   pageParam,
   resolveSearchDate,
   mapConcurrent,
-} from "./utils";
-import pkg from "../package.json";
+} from "./utils.js";
+import pkg from "../package.json" with { type: "json" };
 import {
   fetchFromMalApi,
   parseMalApiAnime,
@@ -17,45 +17,45 @@ import {
   mergeMangaData,
   ANIME_FIELDS,
   MANGA_FIELDS,
-} from "./mal_api";
-import { parseAnime } from "./parsers/anime";
-import { parseAnimeCharacters } from "./parsers/characters";
-import { parseAnimeStaff } from "./parsers/staff";
-import { parseAnimeSearch } from "./parsers/anime_search";
+} from "./mal_api.js";
+import { parseAnime } from "./parsers/anime.js";
+import { parseAnimeCharacters } from "./parsers/characters.js";
+import { parseAnimeStaff } from "./parsers/staff.js";
+import { parseAnimeSearch } from "./parsers/anime_search.js";
 import {
   parseAnimeEpisodes,
   parseAnimeEpisode,
-} from "./parsers/anime_episodes";
-import { parseNews } from "./parsers/news";
-import { parseForum } from "./parsers/forum";
-import { parseAnimeVideos, parseAnimeVideosEpisodes } from "./parsers/videos";
-import { parsePictures } from "./parsers/pictures";
-import { parseStatistics } from "./parsers/stats";
-import { parseMoreInfo } from "./parsers/moreinfo";
+} from "./parsers/anime_episodes.js";
+import { parseNews } from "./parsers/news.js";
+import { parseForum } from "./parsers/forum.js";
+import { parseAnimeVideos, parseAnimeVideosEpisodes } from "./parsers/videos.js";
+import { parsePictures } from "./parsers/pictures.js";
+import { parseStatistics } from "./parsers/stats.js";
+import { parseMoreInfo } from "./parsers/moreinfo.js";
 import {
   parseRecommendations,
   parseUserRecommendations,
-} from "./parsers/recommendations";
-import { parseUserUpdates } from "./parsers/userupdates";
-import { parseReviews } from "./parsers/reviews";
+} from "./parsers/recommendations.js";
+import { parseUserUpdates } from "./parsers/userupdates.js";
+import { parseReviews } from "./parsers/reviews.js";
 
-import { parseManga, parseMangaCharacters } from "./parsers/manga";
-import { parseMangaSearch } from "./parsers/manga_search";
+import { parseManga, parseMangaCharacters } from "./parsers/manga.js";
+import { parseMangaSearch } from "./parsers/manga_search.js";
 
-import { parseUser, parseUserById } from "./parsers/user";
-import { parseUserSearch } from "./parsers/user_search";
-import { parseFriends } from "./parsers/friends";
-import { parseUserClubs } from "./parsers/user_clubs";
-import { parseHistory } from "./parsers/history";
-import { parseHover } from "./parsers/hover";
-import { parseSeasonList, parseSeason } from "./parsers/seasons";
+import { parseUser, parseUserById } from "./parsers/user.js";
+import { parseUserSearch } from "./parsers/user_search.js";
+import { parseFriends } from "./parsers/friends.js";
+import { parseUserClubs } from "./parsers/user_clubs.js";
+import { parseHistory } from "./parsers/history.js";
+import { parseHover } from "./parsers/hover.js";
+import { parseSeasonList, parseSeason } from "./parsers/seasons.js";
 import {
   parseCharacter,
   parseCharacterAnime,
   parseCharacterManga,
   parseCharacterVoices,
   parseCharacterPictures,
-} from "./parsers/character";
+} from "./parsers/character.js";
 
 const app = new Hono<{ Bindings: { MAL_CLIENT_ID?: string } }>().basePath(
   "/v4",

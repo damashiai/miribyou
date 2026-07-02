@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { User } from "../models/user";
-import { MAL_BASE_URL } from "../constants";
-import { toIsoDate, cleanImageUrl, ensureMalUrl, extractMalId } from "../utils";
+import { User } from "../models/user.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { toIsoDate, cleanImageUrl, ensureMalUrl, extractMalId } from "../utils.js";
 
 export function parseUser(html: string): User {
   const $ = load(html);

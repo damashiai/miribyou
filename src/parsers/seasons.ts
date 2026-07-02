@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import { MAL_BASE_URL } from "../constants";
-import { cleanImageUrl, ensureMalUrl, parseMalDate } from "../utils";
+import { MAL_BASE_URL } from "../constants.js";
+import { cleanImageUrl, ensureMalUrl, parseMalDate } from "../utils.js";
 
 export function parseSeasonList(html: string): any {
   const $ = load(html);

@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import { MAL_BASE_URL } from "../constants";
-import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils";
+import { MAL_BASE_URL } from "../constants.js";
+import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils.js";
 
 export function parseMangaCharacters(html: string): any[] {
   const $ = load(html);

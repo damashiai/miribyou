@@ -5,8 +5,8 @@ import {
   CharacterMangaEntry,
   CharacterVoiceEntry,
   CharacterImages,
-} from "../models/characters";
-import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils";
+} from "../models/characters.js";
+import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils.js";
 
 function parseNameKanji(html: string): string | null {
   const m = html.match(

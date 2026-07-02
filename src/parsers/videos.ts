@@ -4,15 +4,15 @@ import type {
   Promo,
   VideoEpisode,
   MusicVideo,
-} from "../models/videos";
-import { MAL_BASE_URL } from "../constants";
+} from "../models/videos.js";
+import { MAL_BASE_URL } from "../constants.js";
 import {
   cleanImageUrl,
   ensureMalUrl,
   extractMalId,
   youtubeIdFromUrl,
   youtubeTrailerImages,
-} from "../utils";
+} from "../utils.js";
 
 function buildTrailer(href: string | null) {
   const youtubeId = youtubeIdFromUrl(href);

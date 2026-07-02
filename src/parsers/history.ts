@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { History } from "../models/history";
-import { MAL_BASE_URL } from "../constants";
-import { toIsoDate, ensureMalUrl } from "../utils";
+import { History } from "../models/history.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { toIsoDate, ensureMalUrl } from "../utils.js";
 
 export function parseHistory(html: string): History[] {
   const $ = load(html);

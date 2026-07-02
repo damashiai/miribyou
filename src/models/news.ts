@@ -1,4 +1,4 @@
-import { ImageResource } from "./anime";
+import { ImageResource } from "./anime.js";
 
 export interface NewsListItem {
   mal_id: number | null;

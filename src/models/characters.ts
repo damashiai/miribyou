@@ -1,6 +1,6 @@
-import { PersonMeta } from "./anime";
-import { AnimeMeta } from "./anime";
-import { MangaMeta } from "./manga";
+import { PersonMeta } from "./anime.js";
+import { AnimeMeta } from "./anime.js";
+import { MangaMeta } from "./manga.js";
 
 export interface CharacterMeta {
   mal_id: number;

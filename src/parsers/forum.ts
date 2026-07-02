@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { ForumTopic } from "../models/forum";
-import { MAL_BASE_URL } from "../constants";
-import { ensureMalUrl, toIsoDate } from "../utils";
+import { ForumTopic } from "../models/forum.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { ensureMalUrl, toIsoDate } from "../utils.js";
 
 export function parseForum(html: string): ForumTopic[] {
   const $ = load(html);

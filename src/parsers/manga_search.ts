@@ -1,11 +1,11 @@
 import { load } from "cheerio";
-import { MAL_BASE_URL } from "../constants";
+import { MAL_BASE_URL } from "../constants.js";
 import {
   parseMalDate,
   cleanImageUrl,
   resolveSearchDate,
   extractMalId,
-} from "../utils";
+} from "../utils.js";
 
 export function parseMangaSearch(html: string): any {
   const $ = load(html);

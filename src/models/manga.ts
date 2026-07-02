@@ -1,4 +1,4 @@
-import { ImageResource, MalUrl, Title, DateRange, Relation } from "./anime";
+import { ImageResource, MalUrl, Title, DateRange, Relation } from "./anime.js";
 
 export interface MangaMeta {
   mal_id: number;

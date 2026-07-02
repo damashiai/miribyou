@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { Friend } from "../models/friends";
-import { MAL_BASE_URL } from "../constants";
-import { cleanImageUrl, toIsoDate } from "../utils";
+import { Friend } from "../models/friends.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { cleanImageUrl, toIsoDate } from "../utils.js";
 
 export function parseFriends(html: string): Friend[] {
   const $ = load(html);

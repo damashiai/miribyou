@@ -9,7 +9,7 @@
  */
 import { serve } from "@hono/node-server";
 
-import { app, createFetchHandler } from "./app";
+import { app, createFetchHandler } from "./app.js";
 
 const handler = createFetchHandler(app, { logRequests: true });
 const port = Number(process.env.PORT ?? 7860);

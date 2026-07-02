@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import { MalUrl } from "../models/anime";
-import { ensureMalUrl } from "../utils";
+import { MalUrl } from "../models/anime.js";
+import { ensureMalUrl } from "../utils.js";
 
 export interface HoverData {
   title?: string;

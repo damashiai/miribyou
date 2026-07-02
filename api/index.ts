@@ -8,7 +8,7 @@
  * src/server.ts — the route handlers in src/app.ts read `c.env.MAL_CLIENT_ID`
  * the same way regardless of which platform is calling them.
  */
-import { app, createFetchHandler } from "../src/app";
+import { app, createFetchHandler } from "../src/app.js";
 
 const handler = createFetchHandler(app);
 

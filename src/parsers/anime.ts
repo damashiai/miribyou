@@ -1,13 +1,13 @@
 import { load } from "cheerio";
-import { Anime, MalUrl, Title, Relation } from "../models/anime";
-import { MAL_BASE_URL } from "../constants";
+import { Anime, MalUrl, Title, Relation } from "../models/anime.js";
+import { MAL_BASE_URL } from "../constants.js";
 import {
   parseMalDate,
   cleanImageUrl,
   ensureMalUrl,
   youtubeIdFromUrl,
   youtubeTrailerImages,
-} from "../utils";
+} from "../utils.js";
 
 export function parseAnime(html: string): Anime {
   const $ = load(html);

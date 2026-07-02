@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import { MAL_BASE_URL } from "../constants";
-import { cleanImageUrl } from "../utils";
+import { MAL_BASE_URL } from "../constants.js";
+import { cleanImageUrl } from "../utils.js";
 
 export function parsePictures(html: string): any[] {
   const $ = load(html);

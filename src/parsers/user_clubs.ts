@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import { MAL_BASE_URL } from "../constants";
-import { ensureMalUrl } from "../utils";
+import { MAL_BASE_URL } from "../constants.js";
+import { ensureMalUrl } from "../utils.js";
 
 export interface UserClub {
   mal_id: number;

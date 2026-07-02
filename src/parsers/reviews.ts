@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { Review, Reactions } from "../models/reviews";
-import { MAL_BASE_URL } from "../constants";
-import { toIsoDate, ensureMalUrl, cleanImageUrl } from "../utils";
+import { Review, Reactions } from "../models/reviews.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { toIsoDate, ensureMalUrl, cleanImageUrl } from "../utils.js";
 
 interface ReviewPagination {
   last_visible_page: number;

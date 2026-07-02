@@ -1,4 +1,4 @@
-import { MAL_BASE_URL } from "./constants";
+import { MAL_BASE_URL } from "./constants.js";
 
 const requestCache = new Map<string, Promise<string>>();
 const responseCache = new Map<string, { text: string; expires: number }>();

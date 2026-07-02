@@ -1,4 +1,4 @@
-import { AnimeMeta } from "./anime";
+import { AnimeMeta } from "./anime.js";
 
 export interface Promo {
   title: string;

@@ -1,4 +1,4 @@
-import { UserMeta } from "./user";
+import { UserMeta } from "./user.js";
 
 export interface Friend {
   user: UserMeta;

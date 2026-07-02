@@ -1,13 +1,13 @@
 import { load } from "cheerio";
-import { Manga } from "../models/manga";
-import { MalUrl, Title, Relation } from "../models/anime";
-import { MAL_BASE_URL } from "../constants";
+import { Manga } from "../models/manga.js";
+import { MalUrl, Title, Relation } from "../models/anime.js";
+import { MAL_BASE_URL } from "../constants.js";
 import {
   parseMalDate,
   cleanImageUrl,
   ensureMalUrl,
   extractMalId,
-} from "../utils";
+} from "../utils.js";
 
 export function parseManga(html: string): Manga {
   const $ = load(html);

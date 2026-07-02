@@ -10,7 +10,7 @@
  * process.env works the same as under Node, so MAL_CLIENT_ID/PORT are read
  * the same way as every other target.
  */
-import { app, createFetchHandler } from "./app";
+import { app, createFetchHandler } from "./app.js";
 
 const handler = createFetchHandler(app);
 const port = Number(process.env.PORT ?? 7860);

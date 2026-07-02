@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { AnimeEpisode, AnimeEpisodes } from "../models/episodes";
-import { MAL_BASE_URL } from "../constants";
-import { toIsoDate, ensureMalUrl } from "../utils";
+import { AnimeEpisode, AnimeEpisodes } from "../models/episodes.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { toIsoDate, ensureMalUrl } from "../utils.js";
 
 export function parseAnimeEpisodes(html: string): AnimeEpisodes {
   const $ = load(html);

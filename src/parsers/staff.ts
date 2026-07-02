@@ -1,6 +1,6 @@
 import { load } from "cheerio";
-import { AnimeStaff } from "../models/staff";
-import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils";
+import { AnimeStaff } from "../models/staff.js";
+import { cleanImageUrl, ensureMalUrl, extractMalId } from "../utils.js";
 
 export function parseAnimeStaff(html: string): AnimeStaff[] {
   const $ = load(html);

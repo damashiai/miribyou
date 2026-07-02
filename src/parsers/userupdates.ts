@@ -1,7 +1,7 @@
 import { load } from "cheerio";
-import { UserUpdate } from "../models/userupdates";
-import { MAL_BASE_URL } from "../constants";
-import { cleanImageUrl, toIsoDate, ensureMalUrl } from "../utils";
+import { UserUpdate } from "../models/userupdates.js";
+import { MAL_BASE_URL } from "../constants.js";
+import { cleanImageUrl, toIsoDate, ensureMalUrl } from "../utils.js";
 
 export function parseUserUpdates(
   html: string,

@@ -1,4 +1,4 @@
-import { MalUrl } from "../models/anime";
+import { MalUrl } from "../models/anime.js";
 
 export interface History {
   entry: MalUrl;
