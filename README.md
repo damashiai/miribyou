@@ -119,15 +119,16 @@ All endpoints are `GET` requests.
 - `GET /v4/anime/:id/staff` - Production staff list
 - `GET /v4/anime/:id/episodes` - Episode list (supports pagination via `?page=n`)
 - `GET /v4/anime/:id/episodes/:episodeId` - Single episode details
-- `GET /v4/anime/:id/news` - News articles (supports pagination via `?page=n`)
+- `GET /v4/anime/:id/news` - News articles (supports pagination via `?page=n` or `?p=n`)
 - `GET /v4/anime/:id/forum` - Forum discussion topics
-- `GET /v4/anime/:id/videos` - Promotional videos and episode streaming links
+- `GET /v4/anime/:id/videos` - Promotional videos, episode streaming links, and music videos
+- `GET /v4/anime/:id/videos/episodes` - Episode videos only (supports pagination via `?page=n` or `?p=n`)
 - `GET /v4/anime/:id/pictures` - Image gallery
 - `GET /v4/anime/:id/statistics` - Score distribution and watch status statistics
 - `GET /v4/anime/:id/moreinfo` - Additional information text
 - `GET /v4/anime/:id/recommendations` - User recommendations
 - `GET /v4/anime/:id/userupdates` - Latest user list updates
-- `GET /v4/anime/:id/reviews` - User reviews (supports pagination via `?page=n`)
+- `GET /v4/anime/:id/reviews` - User reviews (supports pagination via `?page=n` or `?p=n`)
 - `GET /v4/anime/:id/relations` - Related anime/manga entries
 - `GET /v4/anime/:id/themes` - Opening and ending themes
 - `GET /v4/anime/:id/external` - External resources links
@@ -139,14 +140,14 @@ All endpoints are `GET` requests.
 - `GET /v4/manga/:id` - Basic manga details
 - `GET /v4/manga/:id/full` - Full manga metadata
 - `GET /v4/manga/:id/characters` - Character list
-- `GET /v4/manga/:id/news` - News articles (supports pagination via `?page=n`)
+- `GET /v4/manga/:id/news` - News articles (supports pagination via `?page=n` or `?p=n`)
 - `GET /v4/manga/:id/forum` - Forum topics
 - `GET /v4/manga/:id/pictures` - Image gallery
 - `GET /v4/manga/:id/statistics` - Reading stats and scores
 - `GET /v4/manga/:id/moreinfo` - Additional information text
 - `GET /v4/manga/:id/recommendations` - User recommendations
 - `GET /v4/manga/:id/userupdates` - Latest list updates
-- `GET /v4/manga/:id/reviews` - User reviews (supports pagination via `?page=n`)
+- `GET /v4/manga/:id/reviews` - User reviews (supports pagination via `?page=n` or `?p=n`)
 - `GET /v4/manga/:id/relations` - Related entries
 - `GET /v4/manga/:id/external` - External links
 
@@ -191,6 +192,8 @@ All endpoints are `GET` requests.
 ## ⚙️ Query Parameter Reference
 
 ### Anime Search (`/v4/anime`)
+
+> **Note:** All paginated endpoints accept both `?page=n` and `?p=n` interchangeably.
 
 | Parameter                         | Type / Format                                   | Description                                                       |
 | :-------------------------------- | :---------------------------------------------- | :---------------------------------------------------------------- |
@@ -257,9 +260,17 @@ All endpoints are `GET` requests.
 
 | Parameter     | Type      | Default | Description                                                                 |
 | :------------ | :-------- | :------ | :-------------------------------------------------------------------------- |
-| `page`        | `integer` | `1`     | Page number for pagination                                                  |
+| `page` / `p`  | `integer` | `1`     | Page number for pagination                                                  |
 | `preliminary` | `boolean` | `true`  | Include preliminary reviews (reviews left during ongoing airing/publishing) |
 | `spoilers`    | `boolean` | `true`  | Include reviews containing spoilers                                         |
+
+### Anime Episode Videos (`/v4/anime/:id/videos/episodes`)
+
+| Parameter    | Type      | Default | Description                              |
+| :----------- | :-------- | :------ | :--------------------------------------- |
+| `page` / `p` | `integer` | `1`     | Page number for pagination               |
+
+Returns `{ pagination, data }` where `data` is an array of episode video entries and `pagination` contains `last_visible_page` and `has_next_page`.
 
 ---
 
