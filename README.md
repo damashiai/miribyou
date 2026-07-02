@@ -36,29 +36,6 @@ Designed for serverless environments like Cloudflare Workers (or any modern JS r
 
 ---
 
-## 📖 Table of Contents
-
-- [Deployment](#🚀-deployment)
-  - [Cloudflare Workers](#cloudflare-workers)
-  - [Vercel](#vercel)
-  - [Official MAL API Integration](#official-mal-api-integration-optional)
-- [Client Compatibility & Detection](#-client-compatibility--detection)
-- [Caching Strategy](#-caching-strategy)
-- [API Endpoints](#⚡-api-endpoints)
-  - [Base](#base)
-  - [Anime](#anime)
-  - [Manga](#manga)
-  - [Seasons](#seasons)
-  - [Users](#users)
-- [Query Parameter Reference](#⚙️-query-parameter-reference)
-  - [Anime Search](#anime-search-v4anime)
-  - [Manga Search](#manga-search-v4manga)
-  - [User Search](#user-search-v4users)
-  - [Seasons](#seasons-v4seasonsnow-v4seasonsupcoming-v4seasonsyearseason)
-- [Development](#🛠️-development)
-
----
-
 ## 🚀 Deployment
 
 ### Cloudflare Workers
