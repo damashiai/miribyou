@@ -6,7 +6,9 @@ export function parseMoreInfo(html: string): string | null {
   // Remove noise elements before extracting text
   const rightside = $(".rightside");
   if (!rightside.length) return null;
-  rightside.find("#horiznav_nav, .breadcrumb, script, style, div[style]").remove();
+  rightside
+    .find("#horiznav_nav, .breadcrumb, script, style, div[style]")
+    .remove();
 
   const full = rightside.text().trim();
   if (full.includes("No more information has been added to this title.")) {

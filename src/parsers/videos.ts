@@ -124,11 +124,19 @@ export function parseAnimeVideosEpisodes(html: string): {
       }
       has_next_page = true;
     } else if (prevLink.length) {
-      const currentPage = pagination.find("span.link-blue-box").last().text().trim();
+      const currentPage = pagination
+        .find("span.link-blue-box")
+        .last()
+        .text()
+        .trim();
       last_visible_page = currentPage ? parseInt(currentPage, 10) : 1;
       has_next_page = false;
     } else {
-      const currentPage = pagination.find("span.link-blue-box").last().text().trim();
+      const currentPage = pagination
+        .find("span.link-blue-box")
+        .last()
+        .text()
+        .trim();
       last_visible_page = currentPage ? parseInt(currentPage, 10) : 1;
     }
   }

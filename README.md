@@ -266,9 +266,9 @@ All endpoints are `GET` requests.
 
 ### Anime Episode Videos (`/v4/anime/:id/videos/episodes`)
 
-| Parameter    | Type      | Default | Description                              |
-| :----------- | :-------- | :------ | :--------------------------------------- |
-| `page` / `p` | `integer` | `1`     | Page number for pagination               |
+| Parameter    | Type      | Default | Description                |
+| :----------- | :-------- | :------ | :------------------------- |
+| `page` / `p` | `integer` | `1`     | Page number for pagination |
 
 Returns `{ pagination, data }` where `data` is an array of episode video entries and `pagination` contains `last_visible_page` and `has_next_page`.
 
